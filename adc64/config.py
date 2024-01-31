@@ -2,7 +2,7 @@ import yaml
 from os.path import abspath
 
 
-REPOSITORY_NAME = f'adc64'
+REPOSITORY_NAME = f'adc64_remote_control'
 CONFIG_PATH = f'/{REPOSITORY_NAME}/sample_config.yaml'
 
 

@@ -7,7 +7,7 @@ cd adc64
 ## Server configuration
 Open the configuration file `sample_config.yaml` located in `adc64` directory. The configuration allows you to specify the entry point to the backend `AppHost` and `AppPort`. Example
 ```
-# APP settings
+# APP server settings
 AppHost: 159.83.34.42
 AppPort: 5050
 ```
