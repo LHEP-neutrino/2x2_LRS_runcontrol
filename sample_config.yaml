@@ -1,0 +1,3 @@
+# APP server settings
+AppHost: <ip_address>
+AppPort: <port>
