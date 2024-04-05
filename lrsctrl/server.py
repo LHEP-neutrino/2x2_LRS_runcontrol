@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
-from adc64.config import Config
-from adc64.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
+from lrsctrl.config import Config
+from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
 
 
 app = Flask(__name__)

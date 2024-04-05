@@ -1,17 +1,16 @@
 from setuptools import setup, find_packages
 
-
 setup(
-    name="adc64",
-    version="0.0.1",
+    name="lrsctrl",
+    version="1.0.0",
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "adc64 = adc64.cli:adc64",
+            "lrsctrl = lrsctrl.cli:lrsctrl",
         ]
     },
-    description="CLI for remote control AFI ADC64 boards",
-    author="Green Lab",
+    description="2x2 Light Readout DAQ Run Control",
+    author="Livio Calivers; Greenlab",
     classifiers=["Intended Audience :: Information Technology",
                  "Operating System :: POSIX :: Linux",
                  "Programming Language :: Python",
