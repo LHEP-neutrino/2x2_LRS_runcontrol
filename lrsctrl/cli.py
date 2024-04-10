@@ -25,7 +25,7 @@ def start_calib_run():
 @lrsctrl.command()
 def stop_calib_run():
     Client().stop_calib_run()
-    
+
 
 # DAQ software controls
 @lrsctrl.command()
@@ -43,7 +43,3 @@ def start_rc():
 @lrsctrl.command()
 def stop_rc():
     Client().send_stop_rc()
-
-@lrsctrl.command()
-def serve():
-    server.start_app()
