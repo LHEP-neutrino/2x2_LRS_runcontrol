@@ -9,6 +9,7 @@ import os, threading, time
 
 app = Flask(__name__)
 CUR_RUN = None
+event_handler = None
 
 
 def start_app():
@@ -19,8 +20,9 @@ def start_app():
     #serve(app, host="0.0.0.0", port=port)
 
 #Data run controls
-@app.route("/api/start_data_run/")
+@app.route("/api/start_data_run/", methods=['POST'])
 def start_data_run():
+    global CUR_RUN
     start_rc()
     data = request.get_json()
     CUR_RUN = data
@@ -28,6 +30,11 @@ def start_data_run():
 
 @app.route("/api/stop_data_run/")
 def stop_data_run():
+    stop_rc()
+    time.sleep(10)
+    global event_handler
+    if event_handler.last_file_path:
+        event_handler.process_file(event_handler.last_file_path)
     return jsonify(None)
 
 
@@ -64,22 +71,36 @@ def stop_rc():
     Sender(SENDER_PORT_RC).msg_send('stop_rc')
     return jsonify(None)
 
-class NewFileHandler(FileSystemEventHandler):
+class FileHandler(FileSystemEventHandler):
+    def __init__(self):
+        super().__init__()
+        self.last_file_path = None
+
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith('.data'):
-            file_path = event.src_path
+            if self.last_file_path:  # Check if there was a previous file
+                self.process_file(self.last_file_path)  # Process the previous file
+            self.last_file_path = event.src_path
+
+    def process_file(self, file_path):
+        global CUR_RUN
+        if CUR_RUN:
             meta_args = CUR_RUN
             meta_args["datafile"] = file_path
             dump_metadata(meta_args)
+            self.last_file_path = None
+        else:
+            print("NO RUN INFO for file ",self.last_file_path," metadata not created")
 
 def watch_for_new_files(directory):
-    event_handler = NewFileHandler()
+    global event_handler
+    event_handler = FileHandler()
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
     observer.start()
     try:
         while True:
-            time.sleep(60)
+            time.sleep(5)
     except KeyboardInterrupt:
         observer.stop()
     observer.join()

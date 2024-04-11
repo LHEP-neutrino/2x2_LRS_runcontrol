@@ -42,8 +42,8 @@ def get_end_time(path: Path):
 
 
 def get_run(path: Path, args):
-    if run := args["run"]:
-        return run
+    if "run" in args.keys():
+        return args["run"]
     
     pattern = r"mpd_(.*?)_(\d+)_p(\d+)\.data"
     match = re.match(pattern, path.name)
@@ -60,8 +60,8 @@ def get_run(path: Path, args):
 
 
 def get_subrun(path: Path, args):
-    if subrun := args["subrun"]:
-        return subrun
+    if "subrun" in args.keys():
+        return args["subrun"]
     
     pattern = r"mpd_(.*?)_(\d+)_p(\d+)\.data"
     match = re.match(pattern, path.name)
@@ -69,7 +69,7 @@ def get_subrun(path: Path, args):
         _, _, subrun = match.groups()
         return int(subrun)
     else:
-        raise ValueError("Invalid filename format")
+        raise ValueError("Invalid filename format of %s"%path.name)
 
 
 def get_first_event(file, args: dict):
@@ -78,8 +78,9 @@ def get_first_event(file, args: dict):
     
     #Read first event timestamp
     with open(file,'rb') as buf:
-        while sync := np.frombuffer(buf.read(4), dtype = 'u4'):
-            if not sync:
+        while True:
+            sync = np.frombuffer(buf.read(4), dtype = 'u4')
+            if np.isnan(sync):
                 break
             elif sync == 0x2A50D5AF:
                 buf.seek(8, 1)  # Skip to the timestamp
@@ -90,16 +91,13 @@ def get_first_event(file, args: dict):
 
     raise ValueError("No event found in file")
 
-
 def get_last_event(file, args: dict):
     CHUNK_SIZE = 4096*16
 
     with open(file, 'rb') as buf:
         buf.seek(0, 2)
         file_size = buf.tell()
-        print(file_size)
         num_chunks = -(-file_size // CHUNK_SIZE)
-        print(num_chunks)
 
         # Start from the end of the file and search in reverse
         for chunk_index in range(num_chunks):
@@ -109,7 +107,6 @@ def get_last_event(file, args: dict):
             sync_indices = np.where(np.frombuffer(buf.read(CHUNK_SIZE), dtype='u4') == 0x2A50D5AF)[0]
 
             if len(sync_indices) > 0:
-                print(sync_indices)
                 event_offset = offset + sync_indices[-1] * 4 + 12
                 buf.seek(event_offset)
                 unix_ms = np.frombuffer(buf.read(8), dtype='u8').item()//1000 #ms to s
@@ -135,7 +132,7 @@ def get_metadata(f, args):
     md = meta['metadata'] = {
         'core.application.family': 'lrs',
         'core.application.name': 'lrs_daq',
-        'core.application.version': 'mpd-rcts3-1.4.3-v1.1',
+        'core.application.version': 'mpd-rcts4-1.4.3-v1.5',
 
         'core.data_stream': get_data_stream(f, args),
         'core.data_tier': get_data_tier(f),
@@ -143,13 +140,13 @@ def get_metadata(f, args):
         'core.file_format': 'binary',
         'core.file_content_status': 'good',
 
-        'core.start_time': get_start_time(path),
-        'core.end_time': get_end_time(path),
+        'core.start_time': start_time_unix,
+        'core.end_time': end_time_unix,
 
         'core.run_type': 'neardet-2x2-lar-light',
 
-        'core.runs': [get_run(f, args)],
-        'core.runs_subruns': [get_subrun(f, args)],
+        'core.runs': [get_run(path, args)],
+        'core.runs_subruns': [get_subrun(path, args)],
 
         'core.first_event_number': start_time_tai, # set wr timestamp as unique event number
         'core.last_event_number': end_time_tai,
@@ -168,7 +165,7 @@ def dump_metadata(args):
     with open(jsonfile, 'w') as outf:
         json.dump(meta, outf, indent=4)
         outf.write('\n')
-
+    print("Dumped metadata for ",Path(f).name)
 
 def main():
     ap = argparse.ArgumentParser()
