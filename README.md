@@ -1,29 +1,29 @@
-# ADC64 Remote Control
+# 2x2 LRS Run Control
 Switch to the installation directory
 ```
-cd adc64
+cd lrsctrl
 ```
 
 ## Server configuration
-Open the configuration file `sample_config.yaml` located in `adc64` directory. The configuration allows you to specify the entry point to the backend `AppHost` and `AppPort`. Example
+Open the configuration file `sample_config.yaml` located in `lrsctrl` directory. The configuration allows you to specify the entry point to the backend `AppHost` and `AppPort`. Example
 ```
 # APP server settings
 AppHost: 159.83.34.42
 AppPort: 5050
 ```
-# Install ADC64 Remote Control
+# Install 2x2 LRS Run Control
 ## Command line interface
-Install CLI ADC64
+Install CLI lrsctrl
 ```
 pip install -r requirements.txt
 python3 setup.py develop
 ```
 To view the commands use
 ```
-adc64
+lrsctrl
 ```
 # Usage CLI
-## ADC64 commands
+## LRSCTRL commands
 - **serve** - run application server
 - **start** - ADC64 instance start
 - **start-rc** - RUN CONTROL instance start
@@ -34,14 +34,14 @@ To view command options use
 ```
 --help
 ```
-## Run ADC64 Remote Control server
+## Run 2x2 LRS Run Control server
 To start the server use
 ```
-adc64 serve
+lrsctrl serve
 ```
-# Supplr REST API
+# lrsctrl REST API
 ## URLs
-To manage ADC64 instance you can use URL requests
+To manage lrsctrl instance you can use URL requests
 
 **/api/start_adc64** - ADC64 instance start
 ```
