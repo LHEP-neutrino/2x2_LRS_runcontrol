@@ -9,8 +9,10 @@ def lrsctrl():
 
 #Data run controls
 @lrsctrl.command()
-def start_data_run():
-    Client().start_data_run()
+@click.option("--run", required=True, type=int, help="Run number")
+@click.option("--data_stream", required=True, type=str, help="Data stream (comissioning, physics)")
+def start_data_run(run,data_stream):
+    Client().start_data_run(run,data_stream)
 
 @lrsctrl.command()
 def stop_data_run():
