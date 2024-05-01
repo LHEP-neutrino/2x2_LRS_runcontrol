@@ -9,7 +9,7 @@ import filecmp, os, glob
 class Client():
     def __init__(self):
         config_settings = Config().parse_yaml()
-        self.moas_path = config_settings["moas_path"]+"/"
+        self.moas_path = config_settings["moas_path"]
         self.latest_moas = self.get_latest_moas()
         self.db = DB_Handler()
 

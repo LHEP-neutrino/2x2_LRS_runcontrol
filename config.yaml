@@ -1,3 +1,7 @@
 # APP server settings
-AppHost: <ip_address>
-AppPort: <port>
+AppHost: 192.168.197.42
+AppPort: 5051
+
+#MOAS 
+moas_path: '/data/LRS_det_config/moas_csv/'
+db_path: '/data/LRS_det_config/lrsdetconfig.db'
