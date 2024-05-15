@@ -24,11 +24,6 @@ def stop_data_run():
 def start_calib_run():
     Client().start_calib_run()
 
-@lrsctrl.command()
-def stop_calib_run():
-    Client().stop_calib_run()
-
-
 # DAQ software controls
 @lrsctrl.command()
 def start_adc64():

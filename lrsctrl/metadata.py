@@ -157,15 +157,15 @@ def get_metadata(f, args):
 
     return meta
 
-def dump_metadata(args):
+def dump_metadata(app,args):
     f = args['datafile']
     meta = get_metadata(f,args)
 
     jsonfile = Path(f).with_suffix(Path(f).suffix + '.json')
+    app.logger.info(f"Dumped metadata for {jsonfile}")
     with open(jsonfile, 'w') as outf:
         json.dump(meta, outf, indent=4)
         outf.write('\n')
-    print("Dumped metadata for ",Path(f).name)
 
 def main():
     ap = argparse.ArgumentParser()
