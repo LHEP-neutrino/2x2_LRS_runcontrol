@@ -12,6 +12,7 @@ import numpy as np
 
 import h5py
 
+from lrscfg.client import Client
 
 def get_checksum(path: Path):
     cksum = 1
@@ -68,6 +69,11 @@ def get_subrun(path: Path, args):
     if match:
         _, _, subrun = match.groups()
         return int(subrun)
+    #Check second pattern if not found
+    pattern = r"mpd_(.*?)_(\d+)\.data"
+    match = re.match(pattern, path.name)
+    if match:
+        return 0
     else:
         raise ValueError("Invalid filename format of %s"%path.name)
 
@@ -122,6 +128,7 @@ def get_metadata(f, args):
     end_time_unix, end_time_tai = get_last_event(f, args)
     meta = {}
     path = Path(f)
+    cl = Client()
 
     meta['name'] = path.name
     meta['namespace'] = 'neardet-2x2-lar-light'
@@ -152,7 +159,9 @@ def get_metadata(f, args):
         'core.last_event_number': end_time_tai,
 
         'retention.class': 'rawdata',
-        'retention.status': 'active'
+        'retention.status': 'active',
+
+        'dune.lrs_active_config': cl.get_active_moas()
     }
 
     return meta
