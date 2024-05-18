@@ -1,2 +1,4 @@
-config.yaml
+__pycache__
+*.egg-info
+*.yaml
 *.data

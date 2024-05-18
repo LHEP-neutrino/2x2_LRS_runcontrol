@@ -1,5 +1,6 @@
 import requests
 from lrsctrl.config import Config
+import json
 
 
 class Client():
@@ -10,38 +11,34 @@ class Client():
         self.url = f'http://{self.host}:{self.port}'
 
     #Data run controls
-    def start_data_run(self):
+    def start_data_run(self,run,data_stream):
         addr = f'{self.url}/api/start_data_run'
+        run_config = {
+            "run": run,
+            "data_stream": data_stream
+        }
+        run_config_json = json.dumps(run_config, indent=4)
         try:
-            requests.get(addr)
+            requests.post(addr, json=run_config_json)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')
 
     def stop_data_run(self):
         addr = f'{self.url}/api/stop_data_run'
         try:
-            with requests.post(url,json=data) as resp:
-                answ = resp.json()
-                return answ
+            requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')
 
 
     #Calibration run controls
-    def start_data_run(self):
-        addr = f'{self.url}/api/start_calib_run'
+    def start_calib_run(self):
+        addr = f'{self.url}/api/start_calib_run/'
+        print(addr)
         try:
             requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
-
-    def stop_data_run(self):
-        addr = f'{self.url}/api/stop_calib_run'
-        try:
-            requests.get(addr)
-        except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
-
+            print(f'Server disconected or script failed!')
     
     # DAQ software controls
     def send_start_adc64(self):
@@ -49,25 +46,25 @@ class Client():
         try:
             requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')
 
     def send_stop_adc64(self):
         addr = f'{self.url}/api/stop_adc64'
         try:
             requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')
 
     def send_start_rc(self):
         addr = f'{self.url}/api/start_rc'
         try:
             requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')
 
     def send_stop_rc(self):
         addr = f'{self.url}/api/stop_rc'
         try:
             requests.get(addr)
         except:
-            print(f'Server disconected! Use CLI command to CLI-server: lrsctrl serve')
+            print(f'Server disconected or script failed!')

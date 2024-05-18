@@ -1,0 +1,12 @@
+[Unit]
+Description=2x2 LRS run control server
+After=network.target
+
+[Service]
+type=exec
+WorkingDirectory=<path_to_2x2_LRS_runcontrol_directory>
+ExecStart=<path_to_python_bin_or_venv_python_bin> lrsctrl/server.py
+User=acdaq
+
+[Install]
+WantedBy=multi-user.target
