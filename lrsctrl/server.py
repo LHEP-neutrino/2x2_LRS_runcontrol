@@ -21,8 +21,8 @@ CUR_RUN_LOCK = threading.Lock()
 FILE_PROCESS_LOCK = threading.Lock()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-app.logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
+app.logger.setLevel(logging.DEBUG)
 
 # Disable logging for watchdog
 logging.getLogger('watchdog').setLevel(logging.CRITICAL)
@@ -71,7 +71,8 @@ def start_calib_run():
         global CUR_RUN
         CUR_RUN = {
             "run": 0,
-            "data_stream": "calibration"
+            "data_stream": "calibration",
+            "run_starting_instance": "lrsctrl"
         }
     app.logger.info("CALIB: Start calib run")
     commands = run_calibration()
@@ -80,11 +81,11 @@ def start_calib_run():
         app.logger.info('CALIB: Run calib run %d of %d: %s' % (i+1, len(commands), command))
         pp.set_channels_file(command)
         start_rc()
-        time.sleep(config_dict["pulser_period"])
-        #pp.run_trig(config_dict["pulser_period"])
+        #time.sleep(config_dict["pulser_period"])
+        pp.run_trig(config_dict["pulser_duration"])
         append_json_name(command, command)
         stop_rc()
-        time.sleep(6)
+        time.sleep(8)
     time.sleep(10)
 
     now = datetime.now()
@@ -143,8 +144,9 @@ class FileHandler(FileSystemEventHandler):
         app.logger.debug(CUR_RUN)
         if CUR_RUN:
             meta_args = CUR_RUN
-            meta_args["datafile"] = str(file_path)  # Ensure the file path is a string
-            dump_metadata(app, meta_args)
+            meta_args["database"] = Config().parse_yaml()["db_path"]
+            meta_args["datafile"] = str(file_path)
+            dump_metadata(app, meta_args) #also adds entry to LRS runs database
             app.logger.debug("Dump metadata done")
             self.last_file_path = None
         else:

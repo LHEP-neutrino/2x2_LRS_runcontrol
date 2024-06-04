@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-# COPYIED from https://github.com/larpix/crs_daq/blob/feature-metadata/dump_metadata.py
-
 import argparse
 import datetime
 import json
 from pathlib import Path
-import os, re
+import os
+import re
 import zlib
 import numpy as np
+import sqlite3
 
 import h5py
 
@@ -22,25 +22,19 @@ def get_checksum(path: Path):
             cksum = zlib.adler32(data, cksum)
     return cksum & 0xffffffff
 
-
 def get_data_stream(f, args):
     if ds := args["data_stream"]:
         return ds
-
     return 'commissioning'
-
 
 def get_data_tier(f):
     return 'raw'
 
-
 def get_start_time(path: Path):
     return int(path.stat().st_ctime)
 
-
 def get_end_time(path: Path):
     return int(path.stat().st_mtime)
-
 
 def get_run(path: Path, args):
     if "run" in args.keys():
@@ -51,14 +45,13 @@ def get_run(path: Path, args):
     if match:
         _, run, _ = match.groups()
         return int(run)
-    #Check second pattern if not found
+    # Check second pattern if not found
     pattern = r"mpd_(.*?)_(\d+)\.data"
     match = re.match(pattern, path.name)
     if match:
         _, run = match.groups()
         return int(run)
     raise ValueError("Invalid filename format")
-
 
 def get_subrun(path: Path, args):
     if "subrun" in args.keys():
@@ -69,28 +62,27 @@ def get_subrun(path: Path, args):
     if match:
         _, _, subrun = match.groups()
         return int(subrun)
-    #Check second pattern if not found
+    # Check second pattern if not found
     pattern = r"mpd_(.*?)_(\d+)\.data"
     match = re.match(pattern, path.name)
     if match:
         return 0
     else:
-        raise ValueError("Invalid filename format of %s"%path.name)
-
+        raise ValueError("Invalid filename format of %s" % path.name)
 
 def get_first_event(file, args: dict):
-    #if first_event := args["first_event"]:
+    # if first_event := args["first_event"]:
     #    return first_event
     
-    #Read first event timestamp
-    with open(file,'rb') as buf:
+    # Read first event timestamp
+    with open(file, 'rb') as buf:
         while True:
-            sync = np.frombuffer(buf.read(4), dtype = 'u4')
+            sync = np.frombuffer(buf.read(4), dtype='u4')
             if np.isnan(sync):
                 break
             elif sync == 0x2A50D5AF:
                 buf.seek(8, 1)  # Skip to the timestamp
-                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item()//1000 #ms to s
+                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item() // 1000 # ms to s
                 buf.seek(12, 1)
                 tai_s = np.frombuffer(buf.read(4), dtype='u4').item()
                 return unix_ms, tai_s
@@ -98,7 +90,7 @@ def get_first_event(file, args: dict):
     raise ValueError("No event found in file")
 
 def get_last_event(file, args: dict):
-    CHUNK_SIZE = 4096*16
+    CHUNK_SIZE = 4096 * 16
 
     with open(file, 'rb') as buf:
         buf.seek(0, 2)
@@ -108,20 +100,19 @@ def get_last_event(file, args: dict):
         # Start from the end of the file and search in reverse
         for chunk_index in range(num_chunks):
             offset = max(0, file_size - (chunk_index + 1) * CHUNK_SIZE)
-            read_bits = min(file_size,CHUNK_SIZE)
+            read_bits = min(file_size, CHUNK_SIZE)
             buf.seek(offset)
             sync_indices = np.where(np.frombuffer(buf.read(CHUNK_SIZE), dtype='u4') == 0x2A50D5AF)[0]
 
             if len(sync_indices) > 0:
                 event_offset = offset + sync_indices[-1] * 4 + 12
                 buf.seek(event_offset)
-                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item()//1000 #ms to s
+                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item() // 1000 # ms to s
                 buf.seek(12, 1)
                 tai_s = np.frombuffer(buf.read(4), dtype='u4').item()
                 return unix_ms, tai_s
 
     raise ValueError("No event found in file")
-
 
 def get_metadata(f, args):
     start_time_unix, start_time_tai = get_first_event(f, args)
@@ -166,15 +157,74 @@ def get_metadata(f, args):
 
     return meta
 
-def dump_metadata(app,args):
+def dump_metadata(app, args):
     f = args['datafile']
-    meta = get_metadata(f,args)
+    meta = get_metadata(f, args)
 
     jsonfile = Path(f).with_suffix(Path(f).suffix + '.json')
     app.logger.info(f"Dumped metadata for {jsonfile}")
     with open(jsonfile, 'w') as outf:
         json.dump(meta, outf, indent=4)
         outf.write('\n')
+
+    if 'database' in args:
+        write_metadata_to_db(args['database'], meta, args)
+
+def write_metadata_to_db(db_path, meta,args):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Create table if it doesn't exist
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS lrs_runs_data (
+        filename TEXT,
+        size INTEGER,
+        application_version TEXT,
+        run_mode TEXT,
+        start_time_unix INTEGER,
+        end_time_unix INTEGER,
+        run_start_instance TEXT,
+        morcs_run_nr INTEGER,
+        subrun INTEGER,
+        first_event_tai INTEGER,
+        last_event_tai INTEGER,
+        active_moas TEXT
+    )
+    ''')
+
+    # Insert metadata into table
+    cursor.execute('''
+    INSERT INTO lrs_runs_data (
+        filename, 
+        size, 
+        application_version, 
+        run_mode, 
+        start_time_unix, 
+        end_time_unix, 
+        run_start_instance, 
+        morcs_run_nr, 
+        subrun, 
+        first_event_tai, 
+        last_event_tai, 
+        active_moas
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        meta['name'],
+        meta['size'],
+        meta['metadata']['core.application.version'],
+        meta['metadata']['core.data_stream'],
+        meta['metadata']['core.start_time'],
+        meta['metadata']['core.end_time'],
+        args["run_starting_instance"],
+        meta['metadata']['core.runs'][0],
+        meta['metadata']['core.runs_subruns'][0],
+        meta['metadata']['core.first_event_number'],
+        meta['metadata']['core.last_event_number'],
+        meta['metadata']['dune.lrs_active_config']
+    ))
+
+    conn.commit()
+    conn.close()
 
 def main():
     ap = argparse.ArgumentParser()
@@ -190,6 +240,7 @@ def main():
     ap.add_argument('--subrun', type=int)
     ap.add_argument('--first-event', type=int)
     ap.add_argument('--last-event', type=int)
+    ap.add_argument('--database', type=Path, help='Path to the SQLite database')
 
     args = vars(ap.parse_args())
 

@@ -11,11 +11,12 @@ class Client():
         self.url = f'http://{self.host}:{self.port}'
 
     #Data run controls
-    def start_data_run(self,run,data_stream):
+    def start_data_run(self,run,data_stream,run_start_instance):
         addr = f'{self.url}/api/start_data_run'
         run_config = {
             "run": run,
-            "data_stream": data_stream
+            "data_stream": data_stream,
+            "run_starting_instance": run_start_instance 
         }
         run_config_json = json.dumps(run_config, indent=4)
         try:

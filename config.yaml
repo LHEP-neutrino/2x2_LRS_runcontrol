@@ -6,8 +6,12 @@ AppPort: 5051
 moas_path: '/data/LRS_det_config/moas_csv/'
 db_path: '/data/LRS_det_config/lrsdetconfig.db'
 
-#CALIB RUNS
+#CONFIG PATHS
 pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
+vga_config_path: '/data/LRS_det_config/vga_config/'
+sipm_config_path: '/data/LRS_det_config/sipmps_config/'
+
+#CALIB RUNS
 calib_data: '/data/LRS/calib_runs/'
 pulser_period: 5 #ms
-pulser_duration: 50 #s
+pulser_duration: 30 #s
