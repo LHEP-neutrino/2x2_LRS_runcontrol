@@ -1,0 +1,17 @@
+# APP server settings
+AppHost: 192.168.197.42
+AppPort: 5051
+
+#MOAS 
+moas_path: '/data/LRS_det_config/moas_csv/'
+db_path: '/data/LRS_det_config/lrsdetconfig.db'
+
+#CONFIG PATHS
+pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
+vga_config_path: '/data/LRS_det_config/vga_config/'
+sipm_config_path: '/data/LRS_det_config/sipmps_config/'
+
+#CALIB RUNS
+calib_data: '/data/LRS/calib_runs/'
+pulser_period: 5 #ms
+pulser_duration: 100 #s
