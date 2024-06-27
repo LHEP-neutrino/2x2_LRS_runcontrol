@@ -10,6 +10,11 @@ def lrscfg():
 @click.option("--tag","-t", required=True, type=str, help="Description tag")
 def pull_moas(tag):
     Client().pull_moas(tag)
+    
+@lrscfg.command()
+@click.option("--version","-v", required=False, default=None, type=str, help="MOAS version tag (if not provided latest pulled MOAS used)")
+def activate_moas(version):
+    Client().activate_moas(version)
 
 @lrscfg.command()
 def get_latest_moas():
@@ -21,7 +26,7 @@ def get_active_moas():
     print(Client().get_active_moas())
     return Client().get_active_moas()
 
-@lrscfg.command()
-@click.option("--version","-v", required=True, type=str, help="MOAS version tag ()")
-def set_active_moas(version):
-    Client().set_active_moas(version)
+#@lrscfg.command()
+#@click.option("--version","-v", required=True, type=str, help="MOAS version tag ()")
+#def set_active_moas(version):
+#    Client().set_active_moas(version)
