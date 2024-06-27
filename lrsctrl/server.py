@@ -56,9 +56,13 @@ def start_data_run():
 def stop_data_run():
     stop_rc()
     time.sleep(10)
+    app.logger.info("RUN: Run stopped")
     if file_handler.last_file_path:
+        app.logger.debug("Start process last file")
         with FILE_PROCESS_LOCK:
+            app.logger.debug("Lock done")
             file_handler.process_file(file_handler.last_file_path)
+    app.logger.info("RUN: All files proccessed")
     return jsonify(None)
 
 
@@ -92,7 +96,8 @@ def start_calib_run():
     dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
     out_file = dt_string + '.json'
     convert_to_adcs(out_file)
-
+    app.logger.info('CALIB: Run finished, ok to cancel')
+    
     if file_handler.last_file_path:
         app.logger.debug("Start process last file")
         with FILE_PROCESS_LOCK:

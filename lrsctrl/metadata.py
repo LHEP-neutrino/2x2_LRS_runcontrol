@@ -55,8 +55,8 @@ def get_run(path: Path, args):
 
 def get_subrun(path: Path, args):
     if "subrun" in args.keys():
-        return args["subrun"]
-    
+        if args["subrun"]:
+            return args["subrun"]
     pattern = r"mpd_(.*?)_(\d+)_p(\d+)\.data"
     match = re.match(pattern, path.name)
     if match:
@@ -71,23 +71,34 @@ def get_subrun(path: Path, args):
         raise ValueError("Invalid filename format of %s" % path.name)
 
 def get_first_event(file, args: dict):
-    # if first_event := args["first_event"]:
-    #    return first_event
-    
+    # Define constants
+    SYNC_BYTES_SIZE = 4
+    TIMESTAMP_SIZE = 8
+    TAI_SIZE = 4
+    EVENT_HEADER_SIZE = SYNC_BYTES_SIZE + TIMESTAMP_SIZE + TAI_SIZE
+
     # Read first event timestamp
     with open(file, 'rb') as buf:
         while True:
-            sync = np.frombuffer(buf.read(4), dtype='u4')
-            if np.isnan(sync):
-                break
-            elif sync == 0x2A50D5AF:
+            sync_bytes = buf.read(SYNC_BYTES_SIZE)
+            if len(sync_bytes) < SYNC_BYTES_SIZE:
+                break  # End of file reached
+            sync = np.frombuffer(sync_bytes, dtype='u4')
+            if sync == 0x2A50D5AF:
                 buf.seek(8, 1)  # Skip to the timestamp
-                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item() // 1000 # ms to s
-                buf.seek(12, 1)
-                tai_s = np.frombuffer(buf.read(4), dtype='u4').item()
+                timestamp_bytes = buf.read(TIMESTAMP_SIZE)
+                if len(timestamp_bytes) < TIMESTAMP_SIZE:
+                    raise ValueError("File ended unexpectedly while reading timestamp")
+                unix_ms = np.frombuffer(timestamp_bytes, dtype='u8').item() // 1000  # ms to s
+                buf.seek(12, 1)  # Skip to the timestamp
+                tai_bytes = buf.read(TAI_SIZE)
+                if len(tai_bytes) < TAI_SIZE:
+                    raise ValueError("File ended unexpectedly while reading TAI timestamp")
+                tai_s = np.frombuffer(tai_bytes, dtype='u4').item()
+                
                 return unix_ms, tai_s
-
-    raise ValueError("No event found in file")
+    return -1, -1
+    #raise ValueError("No event found in file")
 
 def get_last_event(file, args: dict):
     CHUNK_SIZE = 4096 * 16
@@ -100,19 +111,20 @@ def get_last_event(file, args: dict):
         # Start from the end of the file and search in reverse
         for chunk_index in range(num_chunks):
             offset = max(0, file_size - (chunk_index + 1) * CHUNK_SIZE)
-            read_bits = min(file_size, CHUNK_SIZE)
+            read_size = min(CHUNK_SIZE, file_size - offset)
             buf.seek(offset)
-            sync_indices = np.where(np.frombuffer(buf.read(CHUNK_SIZE), dtype='u4') == 0x2A50D5AF)[0]
+            chunk_data = buf.read(read_size)
+            sync_indices = np.where(np.frombuffer(chunk_data, dtype='u4') == 0x2A50D5AF)[0]
 
             if len(sync_indices) > 0:
                 event_offset = offset + sync_indices[-1] * 4 + 12
                 buf.seek(event_offset)
-                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item() // 1000 # ms to s
+                unix_ms = np.frombuffer(buf.read(8), dtype='u8').item() // 1000  # ms to s
                 buf.seek(12, 1)
                 tai_s = np.frombuffer(buf.read(4), dtype='u4').item()
                 return unix_ms, tai_s
-
-    raise ValueError("No event found in file")
+    return -1, -1
+    #raise ValueError("No event found in file")
 
 def get_metadata(f, args):
     start_time_unix, start_time_tai = get_first_event(f, args)
@@ -158,11 +170,15 @@ def get_metadata(f, args):
     return meta
 
 def dump_metadata(app, args):
+    if app:
+        app.logger.debug(f"Entered dump_meta")
     f = args['datafile']
     meta = get_metadata(f, args)
-
+    if app:
+        app.logger.debug(f"get_metadata done")
     jsonfile = Path(f).with_suffix(Path(f).suffix + '.json')
-    app.logger.info(f"Dumped metadata for {jsonfile}")
+    if app:
+        app.logger.info(f"Dumped metadata for {jsonfile}")
     with open(jsonfile, 'w') as outf:
         json.dump(meta, outf, indent=4)
         outf.write('\n')
@@ -226,25 +242,23 @@ def write_metadata_to_db(db_path, meta,args):
     conn.commit()
     conn.close()
 
-def main():
+if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('datafile', type=Path)
+    ap.add_argument('--datafile', type=Path)
 
     # NOTE: If any of the following are specified on the command line, they
     # override whatever might be stored in the attrs of `/meta` in the hdf5
     # file. If nothing is specified on the command line, and nothing is in
     # `/meta`, then `get_data_stream` etc. will return a default value.
-    ap.add_argument('--data-stream')
+    ap.add_argument('--data_stream',type=str)
+    ap.add_argument('--run_starting_instance',type=str)
     # ap.add_argument('--run-type')
-    ap.add_argument('--run', type=int)
-    ap.add_argument('--subrun', type=int)
+    ap.add_argument('--run', type=int, default=None)
+    ap.add_argument('--subrun', type=int, default=None)
     ap.add_argument('--first-event', type=int)
     ap.add_argument('--last-event', type=int)
     ap.add_argument('--database', type=Path, help='Path to the SQLite database')
 
     args = vars(ap.parse_args())
 
-    dump_metadata(args)
-
-if __name__ == '__main__':
-    main()
+    dump_metadata(None,args)

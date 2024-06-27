@@ -18,9 +18,9 @@ class Client():
             "data_stream": data_stream,
             "run_starting_instance": run_start_instance 
         }
-        run_config_json = json.dumps(run_config, indent=4)
+        #run_config_json = json.dumps(run_config, indent=4)
         try:
-            requests.post(addr, json=run_config_json)
+            requests.post(addr, json=run_config)
         except:
             print(f'Server disconected or script failed!')
 
