@@ -15,6 +15,10 @@ def pull_moas(tag):
 @click.option("--version","-v", required=False, default=None, type=str, help="MOAS version tag (if not provided latest pulled MOAS used)")
 def activate_moas(version):
     Client().activate_moas(version)
+    
+@lrscfg.command()
+def ramp_down_sipm():
+    Client().ramp_down_sipm()
 
 @lrscfg.command()
 def get_latest_moas():
