@@ -51,6 +51,12 @@ def start_data_run():
     start_rc()
     return jsonify(None)
 
+@app.route("/api/reset_meta/", methods=['POST'])
+def reset_meta():
+    global CUR_RUN
+    data = request.get_json()
+    CUR_RUN = data
+    return jsonify(None)
 
 @app.route("/api/stop_data_run/")
 def stop_data_run():
@@ -138,6 +144,7 @@ class FileHandler(FileSystemEventHandler):
 
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith('.data'):
+            app.logger.debug(f"New file discoverd {event.src_path}")
             with FILE_PROCESS_LOCK:
                 if self.last_file_path:  # Check if there was a previous file
                     self.process_file(self.last_file_path)  # Process the previous file
