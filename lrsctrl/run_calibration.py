@@ -18,7 +18,7 @@ def combine_json_files(input_directory, output_file):
             file_path = os.path.join(input_directory, filename)
             with open(file_path, "r") as file:
                 data = json.load(file)
-                print(data['data_name'])
+                #print(data['data_name'])
                 data['calib_run'] = data['data_name']
                 combined_data.append(data)
 
@@ -27,16 +27,16 @@ def combine_json_files(input_directory, output_file):
         json.dump(combined_data, outfile, indent=4)
 
 def append_json_name(in_json, out_json):
-	# Open the JSON file
-	with open(in_json, 'r') as file:
-	    data = json.load(file)
+    # Open the JSON file
+    with open(in_json, 'r') as file:
+        data = json.load(file)
 
-	data_file = get_most_recent_file(Config().parse_yaml()["calib_data"])
-	data['data_name'] = data_file
+        data_file = get_most_recent_file(Config().parse_yaml()["calib_data"])
+        data['data_name'] = data_file
 
-	# Close the file
-	with open(out_json, 'w') as file:
-	    json.dump(data, file)
+    # Write the updated JSON to the output file
+    with open(out_json, 'w') as file:
+        json.dump(data, file)
 
 def run_calibration():
     commands = []
@@ -45,7 +45,7 @@ def run_calibration():
     number_of_configs = lrsctrl.pulser_config_maker.make()
     print("Number of Configurations: ",number_of_configs)
     for i in range(number_of_configs):
-        filename = base + str(i+1) + ".json"
+        filename = base + ('%02d' % (i+1)) + ".json"
         adjust_command = filename
         commands += [adjust_command]
     return commands
@@ -82,6 +82,7 @@ def convert_to_adcs(out_file):
     # Compiles all that information into a list
     with open(Config().parse_yaml()["pulser_config_path"]+"../Merged/"+out_file) as f:
         data = json.load(f)
+        counter = 0
         for run in data:
             run_id = (run['calib_run'])
             print(run_id)
@@ -91,6 +92,7 @@ def convert_to_adcs(out_file):
             adc_serials = []
             for ch_n in run['channels']:
                 pulser_channel, series, parallel = int(ch_n[2:]), run['channels'][ch_n][0], run['channels'][ch_n][1]
+                print(pulser_channel, series,parallel)
                 cl = Client()
                 filename = cl.get_active_moas()
                 df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
@@ -101,14 +103,18 @@ def convert_to_adcs(out_file):
                 adc_ser = df.adc_serial
                 local_ch = df.adc_0in_chan
                 for i in range(len(moas_series)):
-                    if int(moas_series[i]) == series and int(moas_parallel[i]) == parallel:# and int(moas_led[i]) == pulser_channel:
+                    if int(moas_series[i]) == series and int(moas_parallel[i]) == parallel and int(moas_led[i])-1 == pulser_channel:
                             #relevant_adcs += [adc_id[i]]
+                            print(run_id, moas_led[i]-1, moas_series[i], moas_parallel[i])
                             adc_serials += [str(adc_ser[i])]
                             local_channels += [str(local_ch[i])]
                             adc_data = {"calib_run":run_id,
                                         "adc_serials":list(adc_serials),
                                         "local_channels":list(local_channels)}
-            final_data.append(adc_data)
+            #print(adc_data)
+            counter += 1
+            if counter < len(data):
+                final_data.append(adc_data)
 
     # Writes it to a file
     output_file = Config().parse_yaml()["pulser_config_path"]+"../ADCnum/"+out_file

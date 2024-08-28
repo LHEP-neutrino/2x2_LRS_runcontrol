@@ -44,7 +44,7 @@ def json_writer(file_index, series, parallel):
 	# Serializing json
 	json_object = json.dumps(dictionary)
 	# Writing to sample.json
-	name = Config().parse_yaml()["pulser_config_path"] + str(file_index) + ".json"
+	name = Config().parse_yaml()["pulser_config_path"] + file_index + ".json"
 	print(name)
 	with open(name, "w") as outfile:
 		outfile.write(json_object)
@@ -118,18 +118,21 @@ def make():
 		file_index += 1
 		i = sorted(i)
 		series = np.full((16),0)
-		parallels = np.full((16),0)
+		parallels = np.full((16),100)
 		for j in i:
 			led = int(str(j)[-8:-6])
 			if led <= 16:
-				parallels[led-1] = int(str(j)[-4:-1])
+				parallels[led-1] = int(str(j)[-3:])
 				series[led-1] = int(str(j)[-6:-3])
 		series[series > 255] = 0
 		parallels[parallels > 255] = 0
 		pulser_series_resistors += [series]
 		pulser_parallel_resistors += [parallels]
-		file_indicies += [str(file_index)]
+		file_indicies += ["{:02d}".format(file_index)]
 
 	for i, ss, ps in zip(file_indicies, pulser_series_resistors, pulser_parallel_resistors):
 		json_writer(i, ss, ps)
 	return len(pulser_configs)
+
+if __name__ == "__main__":
+	make()

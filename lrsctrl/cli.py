@@ -7,12 +7,13 @@ from lrsctrl import server
 def lrsctrl():
     pass
 
-#Data run controls
+#Data run controls        #####TO BE FIXED######
 @lrsctrl.command()
-@click.option("--run", required=True, type=int, help="Run number")
-@click.option("--data_stream", required=True, type=str, help="Data stream (comissioning, physics)")
-def start_data_run(run,data_stream):
-    Client().start_data_run(run,data_stream)
+@click.option("--run","-r", required=True, type=int, help="Run number")
+@click.option("--data_stream","-d", required=True, type=str, help="Data stream (comissioning, physics)")
+@click.option("--run_start_instance", "-i", required=True, type=str, help="Run start instance (lrsctrl,morcs)")
+def start_data_run(run,data_stream,run_start_instance):
+    Client().start_data_run(run,data_stream,run_start_instance)
 
 @lrsctrl.command()
 def stop_data_run():
@@ -23,6 +24,10 @@ def stop_data_run():
 @lrsctrl.command()
 def start_calib_run():
     Client().start_calib_run()
+
+#####
+# NOT USED ANYMORE:
+#####
 
 # DAQ software controls
 @lrsctrl.command()
