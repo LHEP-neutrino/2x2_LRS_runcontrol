@@ -178,7 +178,7 @@ def watch_for_new_files(directory, event_handler):
 
 
 if __name__ == "__main__":
-    directory_to_watch = '/data/LRS'
+    directory_to_watch = Config().parse_yaml()["data_path"]
     file_handler = FileHandler()
     watcher_thread = threading.Thread(target=watch_for_new_files, args=(directory_to_watch, file_handler))
     watcher_thread.daemon = True

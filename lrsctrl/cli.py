@@ -45,3 +45,6 @@ def start_rc():
 @lrsctrl.command()
 def stop_rc():
     Client().send_stop_rc()
+
+if __name__ == '__main__':
+    lrsctrl()

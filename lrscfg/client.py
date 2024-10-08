@@ -16,6 +16,7 @@ class Client():
     def __init__(self):
         config_settings = Config().parse_yaml()
         self.moas_path = config_settings["moas_path"]
+        self.moas_url = config_settings["moas_url"]
         self.latest_moas = self.get_latest_moas()
         self.db = DB_Handler()
 
@@ -26,7 +27,7 @@ class Client():
         file_name = my_date.strftime("MOAS_%Y%m%d_%H%M%S.csv")
         file_path = self.moas_path + file_name
         print(file_path)
-        pull_command = "wget 'https://docs.google.com/spreadsheets/d/13CcIy80dR0nSdZkhVfw3O8aI-YYRBjdlX6SshXjmRLM/export?format=csv&gid=1062843003' -O '" + file_path + "' &> /dev/null"
+        pull_command = "wget '"+self.moas_url +"' -O '" + file_path + "' &> /dev/null"
         os.system(pull_command)
         if self.latest_moas:
             if filecmp.cmp(file_path,self.moas_path+f"MOAS_{self.latest_moas}.csv"):

@@ -1,17 +1,23 @@
 # APP server settings
-AppHost: 192.168.197.42
+AppHost: 130.92.128.187
 AppPort: 5051
 
 #MOAS 
-moas_path: '/data/LRS_det_config/moas_csv/'
-db_path: '/data/LRS_det_config/lrsdetconfig.db'
+moas_url: 'https://docs.google.com/spreadsheets/d/1s9ns2vQ65r8GNScZHH3hLUCf0ZUVrGjFzKAaS_YGsRo/export?format=csv&gid=1062843003'
+moas_path: '/storage/data/LRS_det_config/moas_csv/'
+db_path: '/storage/data/LRS_det_config/lrsdetconfig.db'
 
 #CONFIG PATHS
-pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
-vga_config_path: '/data/LRS_det_config/vga_config/'
-sipm_config_path: '/data/LRS_det_config/sipmps_config/'
+data_path: '/storage/data/LRS'
+pulser_config_path: '/storage/data/LRS_det_config/pulser_config/Config/'
+vga_config_path: '/storage/data/LRS_det_config/vga_config/'
+sipm_config_path: '/storage/data/LRS_det_config/sipmps_config/'
+
+#DEVICE PATHS
+sipm_ctrl_host: 'pi@130.92.128.188'
+vga_ctrl_host: 'pi@130.92.128.188'
 
 #CALIB RUNS
-calib_data: '/data/LRS/calib_runs/'
+calib_data: '/storage/data/LRS/calib_runs'
 pulser_period: 5 #ms
 pulser_duration: 100 #s

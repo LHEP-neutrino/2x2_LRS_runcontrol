@@ -34,3 +34,6 @@ def get_active_moas():
 #@click.option("--version","-v", required=True, type=str, help="MOAS version tag ()")
 #def set_active_moas(version):
 #    Client().set_active_moas(version)
+
+if __name__ == '__main__':
+    lrscfg()

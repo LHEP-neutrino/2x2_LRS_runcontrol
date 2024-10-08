@@ -9,12 +9,10 @@ from lrsctrl.config import Config
 
 def set_VGA():
     file_01 = Config().parse_yaml()["vga_config_path"] + "tmp/01.yaml"
-    file_23 = Config().parse_yaml()["vga_config_path"] + "tmp/23.yaml"
 
     print("Copy SiPM configs")
-    subprocess.run(['scp', file_01, 'pi@acd-vgactrl01:~/gainr/config_files/'])
-    subprocess.run(['scp', file_23, 'pi@acd-vgactrl23:~/soft/gainr/'])
+    vga_ctrl_path = Config().parse_yaml()["vga_ctrl_host"] + '~/gainr_configs/'
+    subprocess.run(['scp', file_01, vga_ctrl_path])
     print("Set SiPM configs")
-    subprocess.run(['ssh','pi@acd-vgactrl01', '.', '~/configure.sh'])
-    subprocess.run(['ssh','pi@acd-vgactrl23', '.', '~/configure.sh'])
+    subprocess.run(['ssh','pi@acd-vgactrl01', '.', '~/configure_vga.sh'])
     print("VGA gain set!")

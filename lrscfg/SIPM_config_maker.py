@@ -26,39 +26,23 @@ def make(moas_version):
     filename = f"MOAS_{moas_version}.csv"
     df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
 
-    sipm_bias_chan = list(df.sipm_bias_chan)
+    tpc0_sipm_chan = list(df.sipm_bias_chan[df.tpc==0])
+    tpc1_sipm_chan = list(df.sipm_bias_chan[df.tpc==1])
 
-    mod0_sipm_chan = sipm_bias_chan[0:int(len(sipm_bias_chan)/4)]
-    mod1_sipm_chan = sipm_bias_chan[int(len(sipm_bias_chan)/4):int(2*len(sipm_bias_chan)/4)]
-    mod2_sipm_chan = sipm_bias_chan[int(2*len(sipm_bias_chan)/4):int(3*len(sipm_bias_chan)/4)]
-    mod3_sipm_chan = sipm_bias_chan[int(3*len(sipm_bias_chan)/4):]
-
-    sipm_bias = list(df.sipm_bias)
-
-    mod0_bias = [sipm_bias[sipm_bias_chan.index(i)] for i in mod0_sipm_chan]
-    mod1_bias = [sipm_bias[sipm_bias_chan.index(i)+int(len(sipm_bias_chan)/4)] for i in mod1_sipm_chan]
-    mod2_bias = [sipm_bias[sipm_bias_chan.index(i)+int(2*len(sipm_bias_chan)/4)] for i in mod2_sipm_chan]
-    mod3_bias = [sipm_bias[sipm_bias_chan.index(i)+int(3*len(sipm_bias_chan)/4)] for i in mod3_sipm_chan]
+    tpc0_bias = list(df.sipm_bias[df.tpc==0])
+    tpc1_bias = list(df.sipm_bias[df.tpc==1])
 
     print("Write config for sipmpsctrl01")
     path = Config().parse_yaml()["sipm_config_path"]
-    file = path+"MOD0_"+filename[0:-4]+".csv"
-    csv_maker(file, mod0_sipm_chan, mod0_bias)
-    file = path+"MOD1_"+filename[0:-4]+".csv"
-    csv_maker(file, mod1_sipm_chan, mod1_bias)
-    file = path+"MOD2_"+filename[0:-4]+".csv"
-    csv_maker(file, mod2_sipm_chan, mod2_bias)
-    file = path+"MOD3_"+filename[0:-4]+".csv"
-    csv_maker(file, mod3_sipm_chan, mod3_bias)
+    file = path+"tpc0_"+filename[0:-4]+".csv"
+    csv_maker(file, tpc0_sipm_chan, tpc0_bias)
+    file = path+"tpc1_"+filename[0:-4]+".csv"
+    csv_maker(file, tpc1_sipm_chan, tpc1_bias)
 
     print("Write config for sipmpsctrl01")
     path = Config().parse_yaml()["sipm_config_path"] + 'tmp/'
-    file = path+"MOD0.csv"
-    csv_maker(file, mod0_sipm_chan, mod0_bias)
-    file = path+"MOD1.csv"
-    csv_maker(file, mod1_sipm_chan, mod1_bias)
-    file = path+"MOD2.csv"
-    csv_maker(file, mod2_sipm_chan, mod2_bias)
-    file = path+"MOD3.csv"
-    csv_maker(file, mod3_sipm_chan, mod3_bias)
+    file = path+"tpc0.csv"
+    csv_maker(file, tpc0_sipm_chan, tpc0_bias)
+    file = path+"tpc1.csv"
+    csv_maker(file, tpc1_sipm_chan, tpc1_bias)
 

@@ -49,18 +49,13 @@ def make(moas_version):
     filename = f"MOAS_{moas_version}.csv"
     df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
 
-    vga_pos = list(df.vga_pos)
-    first_vga_pos = vga_pos[0:int(len(vga_pos)/2)]
-    last_vga_pos = vga_pos[int(len(vga_pos)/2):]
+    first_vga_pos = list(df.vga_pos)
 
     vga_gain = list(df.vga_gain)
     tpcs = df.tpc
 
     mod_first_vga_pos = [first_vga_pos[i] for i in range(len(first_vga_pos)) if i == 0 or first_vga_pos[i] != first_vga_pos[i-1]]
-    mod_last_vga_pos = [last_vga_pos[i] for i in range(len(last_vga_pos)) if i == 0 or last_vga_pos[i] != last_vga_pos[i-1]]
 
-    first_gains = [vga_gain[vga_pos.index(i)] for i in mod_first_vga_pos]
-    last_gains = [vga_gain[vga_pos.index(i)+int(len(vga_pos)/2)] for i in mod_last_vga_pos]
+    first_gains = [vga_gain[first_vga_pos.index(i)] for i in mod_first_vga_pos]
 
     json_writer("MOD01_gains_"+str(filename[:-4]), first_gains, "01")
-    json_writer("MOD23_gains_"+str(filename[:-4]), last_gains, "23")
