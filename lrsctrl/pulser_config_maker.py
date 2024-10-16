@@ -82,11 +82,11 @@ def make():
 	print(filename, Config().parse_yaml()["moas_path"])
 	df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
 
-	#df = pd.read_csv(filename)
-	#print("Using File: ",filename)
+	# df = pd.read_csv(filename)
+	# print("Using File: ",filename)
 
 	led_groups = df.led_group_id_warm
-	mod_nums = df.mod_num
+	# mod_nums = df.mod_num
 	tpcs = df.tpc
 
 	configs = []
