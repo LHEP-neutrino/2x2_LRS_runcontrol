@@ -26,11 +26,16 @@ def make(moas_version):
     filename = f"MOAS_{moas_version}.csv"
     df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
 
-    tpc0_sipm_chan = list(df.sipm_bias_chan[df.tpc==0])
-    tpc1_sipm_chan = list(df.sipm_bias_chan[df.tpc==1])
+    tpc0_sipm_chan = list(df.sipm_bias_chan[(df.tpc == 0) & (df.sipm_bias_chan != 999)])
+    tpc1_sipm_chan = list(df.sipm_bias_chan[(df.tpc == 1) & (df.sipm_bias_chan != 999)])
 
-    tpc0_bias = list(df.sipm_bias[df.tpc==0])
-    tpc1_bias = list(df.sipm_bias[df.tpc==1])
+
+    tpc0_bias = list(df.sipm_bias[(df.tpc == 0) & (df.sipm_bias_chan != 999)])
+    tpc1_bias = list(df.sipm_bias[(df.tpc == 1) & (df.sipm_bias_chan != 999)])
+    
+    #sort lists by sipm chan
+    tpc0_sipm_chan, tpc0_bias = list(zip(*sorted(zip(tpc0_sipm_chan,tpc0_bias), key=lambda x: x[0])))
+    tpc1_sipm_chan, tpc1_bias = list(zip(*sorted(zip(tpc1_sipm_chan,tpc1_bias), key=lambda x: x[0])))
 
     print("Write config for sipmpsctrl01")
     path = Config().parse_yaml()["sipm_config_path"]

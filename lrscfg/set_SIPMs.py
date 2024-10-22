@@ -21,4 +21,5 @@ def set_SIPM():
     
 def set_SIPM_zero():
     print("Ramp down SiPM bias")
+    sipm_ctrl_host = Config().parse_yaml()["sipm_ctrl_host"]
     subprocess.run(['ssh',sipm_ctrl_host, '.', '~/set0.sh'])

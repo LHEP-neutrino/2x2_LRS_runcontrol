@@ -134,7 +134,7 @@ def get_metadata(f, args):
     cl = Client()
 
     meta['name'] = path.name
-    meta['namespace'] = 'neardet-2x2-lar-light'
+    meta['namespace'] = 'neardet-fsd-lar-light'
     meta['checksums'] = {
         'adler32': f'{get_checksum(path):08x}'}
     meta['size'] = path.stat().st_size
@@ -153,7 +153,7 @@ def get_metadata(f, args):
         'core.start_time': start_time_unix,
         'core.end_time': end_time_unix,
 
-        'core.run_type': 'neardet-2x2-lar-light',
+        'core.run_type': 'neardet-fsd-lar-light',
 
         'core.runs': [get_run(path, args)],
         'core.runs_subruns': [get_subrun(path, args)],
