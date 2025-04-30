@@ -1,17 +1,30 @@
 # 2x2 LRS Run Control
-Switch to the installation directory
+
+The 2x2 LRS Run Control works as an interface to the AFI DAQ software and controls the system configuration (SiPM bias, VGA gain, etc.).
+Further it can be used to perform automated calibration runs using the [2x2 LED Pulser](https://github.com/LHEP-neutrino/2x2PulserSoft).
+
+The following schematic gives an overview of the functionality:
+![LRS_run_control_schematic](https://github.com/user-attachments/assets/547560a2-ce99-496c-be98-8a02008eb12d)
+
+# Install 2x2 LRS Run Control
+
+Clone repo
 ```
-cd lrsctrl
+git clone https://github.com/LHEP-neutrino/2x2_LRS_runcontrol/
+git checkout FSD
+cd 2x2_LRS_runcontrol
 ```
 
-## Server configuration
-Open the configuration file `sample_config.yaml` located in `lrsctrl` directory. The configuration allows you to specify the entry point to the backend `AppHost` and `AppPort`. Example
+## Update configuration file
+Copy the example config file
 ```
-# APP server settings
-AppHost: 159.83.34.42
-AppPort: 5050
+cp config.yaml.example config.yaml
 ```
-# Install 2x2 LRS Run Control
+
+Modify the config file if needed:
+- Set `AppHost` to the IP of the server the LRS control server is installed on.
+- Set all directory paths. All the directories defined MUST exist (except the `lrsdetconfig.db` file).
+  
 ## Command line interface
 Install CLI lrsctrl
 ```
