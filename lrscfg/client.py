@@ -82,7 +82,7 @@ class Client():
         self.set_active_moas(version)
         print("---MOAS successfully loaded---")
         
-    def ramp_down_sipm(self,version):
+    def ramp_down_sipm(self):
         print("---Ramp down SiPMs---")
         set_SIPMs.set_SIPM_zero()
         print("---Ramp finished. Verify in Grafana!!---")
