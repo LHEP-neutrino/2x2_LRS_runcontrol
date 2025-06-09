@@ -19,6 +19,7 @@ class Config:
 
     def config_path(self):
         self.path_to_config = self.app_path + CONFIG_PATH
+        print(self.path_to_config)
         return self.path_to_config
 
     def parse_yaml(self):

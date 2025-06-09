@@ -14,5 +14,5 @@ def set_VGA():
     vga_ctrl_path = Config().parse_yaml()["vga_ctrl_host"] + ':~/gainr_configs/'
     subprocess.run(['scp', file_01, vga_ctrl_path])
     print("Set VGA configs")
-    subprocess.run(['ssh','pi@130.92.128.188', '.', '~/configure_vga.sh'])
+    subprocess.run(['ssh',Config().parse_yaml()["vga_ctrl_host"],'.', '~/configure_vga.sh'])
     print("VGA gain set!")

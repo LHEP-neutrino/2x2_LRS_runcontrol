@@ -6,7 +6,7 @@ After=network.target
 type=exec
 WorkingDirectory=<path_to_2x2_LRS_runcontrol_directory>
 ExecStart=<path_to_python_bin_or_venv_python_bin> lrsctrl/server.py
-User=acdaq
+User=<username>
 
 [Install]
 WantedBy=multi-user.target
