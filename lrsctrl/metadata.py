@@ -38,7 +38,8 @@ def get_end_time(path: Path):
 
 def get_run(path: Path, args):
     if "run" in args.keys():
-        return args["run"]
+        if args["run"]:
+            return args["run"]
     
     pattern = r"mpd_(.*?)_(\d+)_p(\d+)\.data"
     match = re.match(pattern, path.name)
