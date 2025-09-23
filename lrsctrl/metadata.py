@@ -38,7 +38,8 @@ def get_end_time(path: Path):
 
 def get_run(path: Path, args):
     if "run" in args.keys():
-        return args["run"]
+        if args["run"]:
+            return args["run"]
     
     pattern = r"mpd_(.*?)_(\d+)_p(\d+)\.data"
     match = re.match(pattern, path.name)
@@ -131,6 +132,8 @@ def get_metadata(f, args):
     end_time_unix, end_time_tai = get_last_event(f, args)
     meta = {}
     path = Path(f)
+    run = get_run(path, args)
+    subrun = get_subrun(path, args)
     cl = Client()
 
     meta['name'] = path.name
@@ -155,8 +158,8 @@ def get_metadata(f, args):
 
         'core.run_type': 'neardet-2x2-lar-light',
 
-        'core.runs': [get_run(path, args)],
-        'core.runs_subruns': [get_subrun(path, args)],
+        'core.runs': [run],
+        'core.runs_subruns': [10000*run + subrun],
 
         'core.first_event_number': start_time_tai, # set wr timestamp as unique event number
         'core.last_event_number': end_time_tai,
