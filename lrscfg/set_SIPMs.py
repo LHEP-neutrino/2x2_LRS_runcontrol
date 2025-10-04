@@ -64,7 +64,7 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
                 board = 13
 
         cmd_copy = f"scp {config_file} pi@{server}:{config_file_raspi}"
-        subprocess.run(['ssh',f"pi@{server}", cmd_setSiPM])
+        subprocess.run(['ssh',f"pi@{server}", cmd_copy])
 
         cmd_setSiPM = f"supplr set-channel-file --board {board} --file {config_file_raspi}"
         subprocess.run(['ssh',f"pi@{server}", cmd_setSiPM])
