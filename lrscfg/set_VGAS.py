@@ -11,10 +11,10 @@ def set_VGA():
     file_01 = Config().parse_yaml()["vga_config_path"] + "tmp/01.yaml"
     file_23 = Config().parse_yaml()["vga_config_path"] + "tmp/23.yaml"
 
-    print("Copy SiPM configs")
-    subprocess.run(['scp', file_01, 'pi@acd-vgactrl01:~/gainr/config_files/'])
+    print("Copy VGA gain configs")
+    subprocess.run(['scp', file_01, 'pi@acd-vgactrl01:~/soft/gainr/'])
     subprocess.run(['scp', file_23, 'pi@acd-vgactrl23:~/soft/gainr/'])
-    print("Set SiPM configs")
+    print("Set VGA gain configs")
     subprocess.run(['ssh','pi@acd-vgactrl01', '.', '~/configure.sh'])
     subprocess.run(['ssh','pi@acd-vgactrl23', '.', '~/configure.sh'])
     print("VGA gain set!")
