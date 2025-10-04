@@ -10,8 +10,10 @@ db_path: '/data/LRS_det_config/lrsdetconfig.db'
 pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
 vga_config_path: '/data/LRS_det_config/vga_config/'
 sipm_config_path: '/data/LRS_det_config/sipmps_config/'
+sipm_config_path_raspi: '/home/pi/supplr/Configuration_CSVs'
 
 #CALIB RUNS
 calib_data: '/data/LRS/calib_runs/'
 pulser_period: 5 #ms
 pulser_duration: 100 #s
+default_voltage: 1 #V

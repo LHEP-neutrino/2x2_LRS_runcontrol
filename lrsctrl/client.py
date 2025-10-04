@@ -40,6 +40,15 @@ class Client():
             requests.get(addr)
         except:
             print(f'Server disconected or script failed!')
+
+    #Calibration run controls
+    def start_test_calib_run(self):
+        addr = f'{self.url}/api/start_test_calib_run/'
+        print(addr)
+        try:
+            requests.get(addr)
+        except:
+            print(f'Server disconected or script failed!')
     
     # DAQ software controls
     def send_start_adc64(self):

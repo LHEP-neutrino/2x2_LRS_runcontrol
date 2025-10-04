@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import  lrsctrl.pulser_config_maker
+import  lrsctrl.sipmPS_config_maker
 
 from lrscfg.client import Client
 from lrsctrl.config import Config
@@ -39,16 +40,19 @@ def append_json_name(in_json, out_json):
         json.dump(data, file)
 
 def run_calibration():
-    commands = []
+    commands_led = []
     base = Config().parse_yaml()["pulser_config_path"]
     os.system('rm /data/LRS_det_config/pulser_config/Config/*.json')
+
     number_of_configs = lrsctrl.pulser_config_maker.make()
+    commands_sipmPS = lrsctrl.sipmPS_config_maker.make()
     print("Number of Configurations: ",number_of_configs)
     for i in range(number_of_configs):
         filename = base + ('%02d' % (i+1)) + ".json"
         adjust_command = filename
-        commands += [adjust_command]
-    return commands
+        commands_led += [adjust_command]
+
+    return commands_led, commands_sipmPS
 
 def get_most_recent_file(directory):
     # Get list of files in the directory

@@ -25,6 +25,11 @@ def stop_data_run():
 def start_calib_run():
     Client().start_calib_run()
 
+#Test Calibration run controls
+@lrsctrl.command()
+def start_test_calib_run():
+    Client().start_test_calib_run()
+
 #####
 # NOT USED ANYMORE:
 #####
