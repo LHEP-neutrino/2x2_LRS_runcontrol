@@ -11,6 +11,7 @@ from lrsctrl.config import Config
 from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
 from lrsctrl.metadata import dump_metadata
 from lrscfg.client import Client
+from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
 from lrsctrl.run_calibration import *
 import ppulse.client as pp
 
@@ -85,18 +86,23 @@ def start_calib_run():
             "run_starting_instance": "lrsctrl"
         }
     app.logger.info("CALIB: Start calib run")
-    commands = run_calibration()
-    app.logger.info("CALIB: Pulser config files written")
-    for i, command in enumerate(commands):
-        app.logger.info('CALIB: Run calib run %d of %d: %s' % (i+1, len(commands), command))
-        pp.set_channels_file(command)
-        start_rc()
+    commands_led, commands_sipmPS = run_calibration()
+    app.logger.info("CALIB: Pulser and SiPM config files written")
+    stop_SiPMmoniotoring()
+    for i in range(len(commands_led)):
+        app.logger.info(f'CALIB: Run calib run {i} of {len(commands_led)}')
+        pp.set_channels_file(commands_led[i])
+        set_SIPM(commands_sipmPS[i], manage_monitoring=False)
+        # start_rc()
         #time.sleep(config_dict["pulser_period"])
         pp.run_trig(config_dict["pulser_duration"])
-        append_json_name(command, command)
-        stop_rc()
+        append_json_name(commands_led[i], commands_led[i])
+        # stop_rc()
         time.sleep(8)
+        if i >2:
+            return 0
     time.sleep(10)
+    start_SiPMmoniotoring()
 
     now = datetime.now()
     dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
@@ -109,6 +115,49 @@ def start_calib_run():
         with FILE_PROCESS_LOCK:
             file_handler.process_file(file_handler.last_file_path)
         app.logger.debug("Done process last file")
+    return jsonify(None)
+
+# Calibration run controls
+@app.route("/api/start_test_calib_run/")
+def start_test_calib_run():
+    print("command reached the server")
+    # config_dict = Config().parse_yaml()
+    # pp.set_trig(config_dict["pulser_period"])
+    # with CUR_RUN_LOCK:
+    #     global CUR_RUN
+    #     CUR_RUN = {
+    #         "run": 0,
+    #         "data_stream": "calibration",
+    #         "run_starting_instance": "lrsctrl"
+    #     }
+    # app.logger.info("CALIB: Start calib run")
+    commands = run_calibration()
+    print(commands)
+    # app.logger.info("CALIB: Pulser config files written")
+    # for i, command in enumerate(commands):
+    #     app.logger.info('CALIB: Run calib run %d of %d: %s' % (i+1, len(commands), command))
+    #     pp.set_channels_file(command)
+    #     start_rc()
+    #     #time.sleep(config_dict["pulser_period"])
+    #     pp.run_trig(config_dict["pulser_duration"])
+    #     append_json_name(command, command)
+    #     stop_rc()
+    #     time.sleep(8)
+    # time.sleep(10)
+
+    # now = datetime.now()
+    # dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
+    # out_file = dt_string + '.json'
+    # convert_to_adcs(out_file)
+    # app.logger.info('CALIB: Run finished, ok to cancel')
+    
+    # if file_handler.last_file_path:
+    #     app.logger.debug("Start process last file")
+    #     with FILE_PROCESS_LOCK:
+    #         file_handler.process_file(file_handler.last_file_path)
+    #     app.logger.debug("Done process last file")
+
+    print("command executed, thank for choosing lrsctrl")
     return jsonify(None)
 
 
