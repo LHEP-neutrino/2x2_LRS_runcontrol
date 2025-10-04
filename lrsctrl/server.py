@@ -93,11 +93,11 @@ def start_calib_run():
         app.logger.info(f'CALIB: Run calib run {i} of {len(commands_led)}')
         pp.set_channels_file(commands_led[i])
         set_SIPM(commands_sipmPS[i], manage_monitoring=False)
-        # start_rc()
-        #time.sleep(config_dict["pulser_period"])
+        start_rc()
+        time.sleep(config_dict["pulser_period"])
         pp.run_trig(config_dict["pulser_duration"])
         append_json_name(commands_led[i], commands_led[i])
-        # stop_rc()
+        stop_rc()
         time.sleep(8)
         if i >2:
             return 0
