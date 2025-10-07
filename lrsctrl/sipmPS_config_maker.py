@@ -12,16 +12,20 @@ def map_ledRun_id():
     led_id_map = {}
     folder_ledRun_config = Config().parse_yaml()["pulser_config_path"]
     for cfg_file in glob.glob(os.path.join(folder_ledRun_config, "*.json")): 
+        
         filename = os.path.basename(cfg_file)
         with open(cfg_file) as f:
             data = json.load(f)
-
+        print(f"file {cfg_file}, basename: {filename}")
         # Step 2: Build led_id mapping
-        for ch, (a, b) in data["channels"].items():
-            if (a == 0 and b == 100):
+        for ch, (s, p) in data["channels"].items():
+            
+            if (s == 0 and p == 100):
                 continue
+            print(f"\nchan: {ch}, s: {s}, p: {p}")
             int_ch = int(ch[2:])
-            led_id = f"1{int_ch+1:02d}{a:03d}{b:03d}"
+            led_id = f"1{int_ch+1:02d}{s:03d}{p:03d}"
+            print(led_id)
 
             led_id_map[int(led_id)] = filename
 
@@ -30,9 +34,8 @@ def map_ledRun_id():
 
 
 def map_ledRun_PSsipm(led_id_map):
-    cl = Client()
-    filename = cl.get_active_moas()
-	# print(filename, Config().parse_yaml()["moas_path"])
+    filename = Client().get_active_moas()
+    # print('moas', filename, Config().parse_yaml()["moas_path"])
     path_moas = os.path.join(Config().parse_yaml()["moas_path"],filename)
     # Load MOAS
     moas = pd.read_csv(path_moas, usecols=["led_group_id_warm","vga_board_num", "sipm_bias_chan", "sipm_bias"])
@@ -41,10 +44,16 @@ def map_ledRun_PSsipm(led_id_map):
 
     led_ids = list(led_id_map.keys())
 
+    # print(led_id_map)
+
+    # print(moas["led_group_id_warm"])
+
     for i, led_id in enumerate(moas["led_group_id_warm"]):
-        
+        # print(f"{i}: {led_id}, {type(led_id)}, {led_id in led_ids}")
         if led_id in led_ids:
             n_led_run = int(os.path.splitext(led_id_map[led_id])[0])
+
+            # print(f"n_led_run: {n_led_run}")
             
             PS_sipm = [int(moas["vga_board_num"][i]), int(moas["sipm_bias_chan"][i]), float(moas["sipm_bias"][i])]
             ledRun_PSsipm_map.setdefault(n_led_run, []).append(PS_sipm)
@@ -67,7 +76,7 @@ def make_sipmPS_config(ledRun_PSsipm_map):
     config_folders = []
 
     for nRun, PSchans in ledRun_PSsipm_map.items():
-        print(f"\n {nRun}:  {len(PSchans)}")
+        # print(f"\n {nRun}:  {len(PSchans)}")
         # Create folder for the key
         folder_path = os.path.join(output_path, str(nRun))
         os.makedirs(folder_path, exist_ok=True)  # won't raise error if folder exists
@@ -109,6 +118,8 @@ def make_sipmPS_config(ledRun_PSsipm_map):
 def make():
     ledRun_id_map = map_ledRun_id()
     ledRun_PSsipm_map = map_ledRun_PSsipm(ledRun_id_map)
+
+    # print(ledRun_PSsipm_map)
 
     # for key in dict(sorted(ledRun_PSsipm_map.items())).keys():
     #     print(f"{key}:\n{dict(sorted(ledRun_PSsipm_map.items()))[key]}")
