@@ -98,14 +98,11 @@ def start_calib_run():
         app.logger.info(f'CALIB: Run calib run {i} ({i+1}/{len(configs_led)})')
 
         pp.set_channels_file(config_led)
+        app.logger.info(f'CALIB: Pulser channels set')
         set_SIPM(config_sipmPS, manage_monitoring=False)
+        app.logger.info(f'CALIB: SiPM bas voltage channels set')
 
         start_rc()
-        time.sleep(config_dict["pulser_period"])
-        pp.run_trig(config_dict["pulser_duration"])
-        append_json_name(config_led, configs_led)
-
-        stop_rc()
         time.sleep(8)
 
     time.sleep(10)
@@ -126,8 +123,8 @@ def start_calib_run():
     return jsonify(None)
 
 # Calibration run controls
-@app.route("/api/start_test_calib_run/")
-def start_test_calib_run():
+@app.route("/api/start_test/")
+def start_test():
     print("command reached the server")
     print("command executed, thank for choosing lrsctrl")
     return jsonify(None)

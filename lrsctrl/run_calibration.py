@@ -39,11 +39,7 @@ def append_json_name(in_json, out_json):
     with open(out_json, 'w') as file:
         json.dump(data, file)
 
-def run_calibration():
-    commands_led = []
-    base = Config().parse_yaml()["pulser_config_path"]
-    os.system('rm /data/LRS_det_config/pulser_config/Config/*.json')
-
+def make_calib_files():
     pulser_config_files_path = lrsctrl.pulser_config_maker.make()
     sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
 
