@@ -41,10 +41,12 @@ def append_json_name(in_json, out_json):
 
 def make_calib_files():
     pulser_config_files_path = lrsctrl.pulser_config_maker.make()
+    print(f"Pulse config done: {pulser_config_files_path}")
     sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
+    print(f"sipmPS config done: {sipmPS_configs_files_path}")
 
     if len(pulser_config_files_path) != len(sipmPS_configs_files_path):
-        raise ValueError(f"ERROR: The number of pulser configuration ({pulser_config_files_path}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
+        raise ValueError(f"ERROR: The number of pulser configuration ({len(pulser_config_files_path)}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
 
     print(f"Number of Configurations: {len(pulser_config_files_path)}")
 

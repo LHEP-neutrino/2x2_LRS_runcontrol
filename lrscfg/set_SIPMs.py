@@ -88,6 +88,7 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
 
         # Copy the config file on the raspi
         subprocess.run(['scp', config_file, f'pi@{server}:{config_folder_raspi}'])
+        time.sleep(10)
 
         # Check if supplr ready and capture its output (stdout+stderr) as text
         check_supplr_status(server)

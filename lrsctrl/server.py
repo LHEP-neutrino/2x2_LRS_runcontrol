@@ -90,6 +90,11 @@ def start_calib_run():
 
     configs_led, configs_sipmPS = make_calib_files()
     app.logger.info("CALIB: Pulser and SiPM config files written")
+    # app.logger.info(f"CALIB: Pulser files {configs_led}")
+    # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
+
+
+    # return jsonify(None)
 
     stop_SiPMmoniotoring()
     app.logger.info("CALIB: SiPM bias voltage monitoring stopped")
@@ -104,22 +109,28 @@ def start_calib_run():
 
         start_rc()
         time.sleep(8)
+        time.sleep(config_dict["pulser_period"])
+        pp.run_trig(config_dict["pulser_duration"])
+        # append_json_name(config_led, configs_led)
+
+        stop_rc()
+        time.sleep(8)
 
     time.sleep(10)
     start_SiPMmoniotoring()
     app.logger.info("CALIB: SiPM bias voltage monitoring restored")
 
-    now = datetime.now()
-    dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
-    out_file = dt_string + '.json'
-    convert_to_adcs(out_file)
+    # now = datetime.now()
+    # dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
+    # out_file = dt_string + '.json'
+    # convert_to_adcs(out_file)
     app.logger.info('CALIB: Run finished, ok to cancel')
     
-    if file_handler.last_file_path:
-        app.logger.debug("Start process last file")
-        with FILE_PROCESS_LOCK:
-            file_handler.process_file(file_handler.last_file_path)
-        app.logger.debug("Done process last file")
+    # if file_handler.last_file_path:
+    #     app.logger.debug("Start process last file")
+    #     with FILE_PROCESS_LOCK:
+    #         file_handler.process_file(file_handler.last_file_path)
+    #     app.logger.debug("Done process last file")
     return jsonify(None)
 
 # Calibration run controls

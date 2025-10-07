@@ -157,7 +157,7 @@ def make():
 
 		for led_id in config:
 			if check_valid_led_id(led_id):
-				led, p, s = get_led_params(led_id)
+				led, s, p = get_led_params(led_id)
 				parallels[led-1] = p
 				series[led-1] = s
 
