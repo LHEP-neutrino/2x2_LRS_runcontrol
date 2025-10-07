@@ -39,24 +39,9 @@ def append_json_name(in_json, out_json):
     with open(out_json, 'w') as file:
         json.dump(data, file)
 
-def run_calibration():
-    commands_led = []
-    pulser_config_path = Config().parse_yaml()["pulser_config_path"]
-    json_files = os.path.join(pulser_config_path, "*.json")
-    os.system(f'rm {json_files}')
-
-<<<<<<< HEAD
-    number_of_configs = lrsctrl.pulser_config_maker.make()
-    commands_sipmPS = lrsctrl.sipmPS_config_maker.make()
-    print("Number of Configurations: ",number_of_configs)
-    for i in range(number_of_configs):
-        filename = pulser_config_path + ('%02d' % (i+1)) + ".json"
-        adjust_command = filename
-        commands_led += [adjust_command]
-=======
+def make_calib_files():
     pulser_config_files_path = lrsctrl.pulser_config_maker.make()
     sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
->>>>>>> feature/calib_run2
 
     if len(pulser_config_files_path) != len(sipmPS_configs_files_path):
         raise ValueError(f"ERROR: The number of pulser configuration ({pulser_config_files_path}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
