@@ -42,8 +42,8 @@ class Client():
             print(f'Server disconected or script failed!')
 
     #Calibration run controls
-    def start_test_calib_run(self):
-        addr = f'{self.url}/api/start_test_calib_run/'
+    def start_test(self):
+        addr = f'{self.url}/api/start_test/'
         print(addr)
         try:
             requests.get(addr)

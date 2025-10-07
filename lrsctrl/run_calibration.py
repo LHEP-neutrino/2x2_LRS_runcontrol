@@ -41,14 +41,15 @@ def append_json_name(in_json, out_json):
 
 def run_calibration():
     commands_led = []
-    base = Config().parse_yaml()["pulser_config_path"]
-    os.system('rm /data/LRS_det_config/pulser_config/Config/*.json')
+    pulser_config_path = Config().parse_yaml()["pulser_config_path"]
+    json_files = os.path.join(pulser_config_path, "*.json")
+    os.system(f'rm {json_files}')
 
     number_of_configs = lrsctrl.pulser_config_maker.make()
     commands_sipmPS = lrsctrl.sipmPS_config_maker.make()
     print("Number of Configurations: ",number_of_configs)
     for i in range(number_of_configs):
-        filename = base + ('%02d' % (i+1)) + ".json"
+        filename = pulser_config_path + ('%02d' % (i+1)) + ".json"
         adjust_command = filename
         commands_led += [adjust_command]
 

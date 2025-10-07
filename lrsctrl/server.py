@@ -89,18 +89,21 @@ def start_calib_run():
     commands_led, commands_sipmPS = run_calibration()
     app.logger.info("CALIB: Pulser and SiPM config files written")
     stop_SiPMmoniotoring()
+    app.logger.info(f'CALIB: SiPM bias voltage monitoring stopped')
+
     for i in range(len(commands_led)):
-        app.logger.info(f'CALIB: Run calib run {i} of {len(commands_led)}')
+        app.logger.info(f'CALIB: Run calib run {i+1} of {len(commands_led)}')
         pp.set_channels_file(commands_led[i])
+        app.logger.info(f'CALIB: Pulser channels set')
         set_SIPM(commands_sipmPS[i], manage_monitoring=False)
+        app.logger.info(f'CALIB: SiPM bas voltage channels set')
         start_rc()
         time.sleep(config_dict["pulser_period"])
         pp.run_trig(config_dict["pulser_duration"])
         append_json_name(commands_led[i], commands_led[i])
         stop_rc()
         time.sleep(8)
-        if i >2:
-            return 0
+
     time.sleep(10)
     start_SiPMmoniotoring()
 
@@ -118,8 +121,8 @@ def start_calib_run():
     return jsonify(None)
 
 # Calibration run controls
-@app.route("/api/start_test_calib_run/")
-def start_test_calib_run():
+@app.route("/api/start_test/")
+def start_test():
     print("command reached the server")
     # config_dict = Config().parse_yaml()
     # pp.set_trig(config_dict["pulser_period"])
