@@ -14,3 +14,6 @@ Werkzeug==3.0.1
 watchdog==4.0.0
 numpy==1.26.4
 h5py==3.11.0
+pandas==2.2.2
+prettytable==3.10.0 
+waitress==3.0.0

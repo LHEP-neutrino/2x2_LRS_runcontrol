@@ -67,7 +67,7 @@ def make_sipmPS_config(ledRun_PSsipm_map):
     config_folders = []
 
     for nRun, PSchans in ledRun_PSsipm_map.items():
-
+        print(f"\n {nRun}:  {len(PSchans)}")
         # Create folder for the key
         folder_path = os.path.join(output_path, str(nRun))
         os.makedirs(folder_path, exist_ok=True)  # won't raise error if folder exists
@@ -109,11 +109,18 @@ def make_sipmPS_config(ledRun_PSsipm_map):
 def make():
     ledRun_id_map = map_ledRun_id()
     ledRun_PSsipm_map = map_ledRun_PSsipm(ledRun_id_map)
-    # print(ledRun_PSsipm_map)
+
+    # for key in dict(sorted(ledRun_PSsipm_map.items())).keys():
+    #     print(f"{key}:\n{dict(sorted(ledRun_PSsipm_map.items()))[key]}")
+
     sipmPS_configs = make_sipmPS_config(ledRun_PSsipm_map)
     print(f"{len(sipmPS_configs)} SiPM configuration files were made.")
 
     return sipmPS_configs
 
 if __name__ == "__main__":
-    make()
+
+   sipmPS_configs = make()
+   for config_file in sorted(sipmPS_configs):
+       print(config_file)
+
