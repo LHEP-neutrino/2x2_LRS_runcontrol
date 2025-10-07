@@ -26,8 +26,13 @@ class Client():
         file_name = my_date.strftime("MOAS_%Y%m%d_%H%M%S.csv")
         file_path = self.moas_path + file_name
         print(file_path)
-        pull_command = "wget 'https://docs.google.com/spreadsheets/d/13CcIy80dR0nSdZkhVfw3O8aI-YYRBjdlX6SshXjmRLM/export?format=csv&gid=1062843003' -O '" + file_path + "' &> /dev/null"
+        # test_file = "/Users/nsallin/develop/data/test/test.csv"
+        pull_command = (
+                f"curl -sL 'https://docs.google.com/spreadsheets/d/13CcIy80dR0nSdZkhVfw3O8aI-YYRBjdlX6SshXjmRLM/export?format=csv&gid=1062843003' "
+                f"-o '{file_path}'"
+        )
         os.system(pull_command)
+
         if self.latest_moas:
             if filecmp.cmp(file_path,self.moas_path+f"MOAS_{self.latest_moas}.csv"):
                 os.remove(file_path)
@@ -35,6 +40,8 @@ class Client():
                 return self.latest_moas
         self.latest_moas = file_name
         print(f"New MOAS created: {file_name}")
+        # if not os.path.exists(file_path):
+        #     raise FileNotFoundError(f"File not downloaded: {file_path}")
 
         #push to db
         self.db.import_configuration(file_path, tag)
@@ -72,11 +79,13 @@ class Client():
         print("---Make VGA config---")
         VGA_config_maker.make(version)
         print("---Load VGA configs to devices---")
-        set_VGAS.set_VGA()
+        print("Virtually setting VGA configs")
+        # set_VGAS.set_VGA()
         print("---Make SiPM bias config---")
         SIPM_config_maker.make(version)
         print("---Load SiPM bias configs to devices---")
-        set_SIPMs.set_SIPM()
+        print("Virtually setting SiPM configs")
+        # set_SIPMs.set_SIPM()
         
         print("---Set MOAS as active---")
         self.set_active_moas(version)

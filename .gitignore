@@ -1,4 +1,6 @@
 __pycache__
+.python-version
 *.egg-info
 config.yaml
 *.data
+*.venv

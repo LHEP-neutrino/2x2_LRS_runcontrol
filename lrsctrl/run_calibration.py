@@ -44,15 +44,15 @@ def run_calibration():
     base = Config().parse_yaml()["pulser_config_path"]
     os.system('rm /data/LRS_det_config/pulser_config/Config/*.json')
 
-    number_of_configs = lrsctrl.pulser_config_maker.make()
-    commands_sipmPS = lrsctrl.sipmPS_config_maker.make()
-    print("Number of Configurations: ",number_of_configs)
-    for i in range(number_of_configs):
-        filename = base + ('%02d' % (i+1)) + ".json"
-        adjust_command = filename
-        commands_led += [adjust_command]
+    pulser_config_files_path = lrsctrl.pulser_config_maker.make()
+    sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
 
-    return commands_led, commands_sipmPS
+    if len(pulser_config_files_path) != len(sipmPS_configs_files_path):
+        raise ValueError(f"ERROR: The number of pulser configuration ({pulser_config_files_path}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
+
+    print(f"Number of Configurations: {len(pulser_config_files_path)}")
+
+    return pulser_config_files_path, sipmPS_configs_files_path
 
 def get_most_recent_file(directory):
     # Get list of files in the directory
