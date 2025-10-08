@@ -1,6 +1,4 @@
 import requests
-from lrsctrl.config import Config
-from lrscfg.db_handler import DB_Handler
 from datetime import datetime
 import json
 import filecmp, os, glob
@@ -10,6 +8,8 @@ import lrscfg.VGA_config_maker as VGA_config_maker
 import lrscfg.set_VGAS as set_VGAS
 import lrscfg.SIPM_config_maker as SIPM_config_maker
 import lrscfg.set_SIPMs as set_SIPMs
+from lrscfg.db_handler import DB_Handler
+from lrscfg.config import Config
 
 
 class Client():

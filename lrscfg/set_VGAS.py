@@ -5,7 +5,7 @@ import csv
 import sys
 import os
 
-from lrsctrl.config import Config
+from lrscfg.config import Config
 
 def set_VGA():
     file_01 = Config().parse_yaml()["vga_config_path"] + "tmp/01.yaml"

@@ -1,5 +1,5 @@
 import requests
-from lrsctrl.config import Config
+from lrscfg.config import Config
 import json
 
 

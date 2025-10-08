@@ -4,7 +4,7 @@ import csv
 import sys
 import os
 
-from lrsctrl.config import Config
+from lrscfg.config import Config
 
 def find(Input):
     out = {}

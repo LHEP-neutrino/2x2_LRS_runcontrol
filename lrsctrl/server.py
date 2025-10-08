@@ -2,17 +2,17 @@ import logging
 from flask import Flask, request, jsonify
 from waitress import serve
 import threading, time
-from datetime import datetime
-from pathlib import Path
+
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from lrsctrl.config import Config
 from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
 from lrsctrl.metadata import dump_metadata
 from lrscfg.client import Client
+from lrscfg.config import Config
 from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
-from lrsctrl.run_calibration import *
+import lrsctrl.utils as utils
 import ppulse.client as pp
 
 cl = Client()
@@ -76,6 +76,9 @@ def stop_data_run():
 # Calibration run controls
 @app.route("/api/start_calib_run/")
 def start_calib_run():
+    app.logger.info("CALIB: Start calib run")
+    run_info = utils.Run_Info()
+
     config_dict = Config().parse_yaml()
     pp.set_trig(config_dict["pulser_period"])
     with CUR_RUN_LOCK:
@@ -86,9 +89,7 @@ def start_calib_run():
             "run_starting_instance": "lrsctrl"
         }
 
-    app.logger.info("CALIB: Start calib run")
-
-    configs_led, configs_sipmPS = make_calib_files()
+    configs_led, configs_sipmPS = utils.make_calib_files()
     app.logger.info("CALIB: Pulser and SiPM config files written")
     # app.logger.info(f"CALIB: Pulser files {configs_led}")
     # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
@@ -111,32 +112,32 @@ def start_calib_run():
         time.sleep(8)
         time.sleep(config_dict["pulser_period"])
         pp.run_trig(config_dict["pulser_duration"])
-        # append_json_name(config_led, configs_led)
+        
 
         stop_rc()
+        run_info.append_subrun(i, config_led, config_sipmPS)
         time.sleep(8)
 
     time.sleep(10)
     start_SiPMmoniotoring()
     app.logger.info("CALIB: SiPM bias voltage monitoring restored")
 
-    # now = datetime.now()
-    # dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
-    # out_file = dt_string + '.json'
-    # convert_to_adcs(out_file)
+    run_info.write_run_info()
     app.logger.info('CALIB: Run finished, ok to cancel')
     
-    # if file_handler.last_file_path:
-    #     app.logger.debug("Start process last file")
-    #     with FILE_PROCESS_LOCK:
-    #         file_handler.process_file(file_handler.last_file_path)
-    #     app.logger.debug("Done process last file")
+    if file_handler.last_file_path:
+        app.logger.debug("Start process last file")
+        with FILE_PROCESS_LOCK:
+            file_handler.process_file(file_handler.last_file_path)
+        app.logger.debug("Done process last file")
     return jsonify(None)
 
 # Calibration run controls
 @app.route("/api/start_test/")
 def start_test():
     print("command reached the server")
+    
+    
     print("command executed, thank for choosing lrsctrl")
     return jsonify(None)
 

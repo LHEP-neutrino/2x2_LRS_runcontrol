@@ -6,11 +6,13 @@ import sys
 import os
 import time
 
-from lrsctrl.config import Config
+from lrscfg.config import Config
+
+WAIT_TIME = 3 # s
 
 def check_supplr_status(server):
     """
-        Read the can status of supplr every 10 sec until is it free
+        Read the can status of supplr every WAIT_TIME sec until is it free
     """
     cmd_checkSupplr = "supplr can-status"
     while True:
@@ -22,12 +24,12 @@ def check_supplr_status(server):
             text=True,
         )
         answ = proc.stdout.strip()
+        time.sleep(WAIT_TIME)
         if answ != "CAN status: Free":
             print(f"Warning: supplr not ready on {server}. Output: {answ}")
-            time.sleep(10)
+            
         else:
             print(f"supplr ready on {server}")
-            time.sleep(10)
             return 0
 
 def stop_SiPMmoniotoring():
@@ -37,6 +39,7 @@ def stop_SiPMmoniotoring():
     stop_cmd = "screen -S Bias -X quit"
     subprocess.run(['ssh', '-x','pi@acd-sipmpsctrl01.fnal.gov', stop_cmd])
     subprocess.run(['ssh', '-x','pi@acd-sipmpsctrl23.fnal.gov', stop_cmd])
+    time.sleep(WAIT_TIME)
 
     return 0
 
@@ -47,6 +50,7 @@ def start_SiPMmoniotoring():
     start_cmd = "source ~/start_bias_V_in_screen.sh"
     subprocess.run(['ssh', '-x','pi@acd-sipmpsctrl01.fnal.gov', start_cmd])
     subprocess.run(['ssh', '-x','pi@acd-sipmpsctrl23.fnal.gov', start_cmd])
+    time.sleep(WAIT_TIME)
 
     return 0
 
@@ -54,8 +58,9 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
     """
     config_folder: config folder path
     """
+    config = Config().parse_yaml()
     if config_folder is None:
-        config_folder = os.path.join(Config().parse_yaml()["sipm_config_path"], "tmp/")
+        config_folder = os.path.join(config["sipm_config_path"], "tmp/")
 
     if manage_monitoring == False:
         print("Warning: Monitoring state unchanged. Please check, an active monitoring session may cause network overload.")
@@ -69,7 +74,7 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
     for n_mod in range(N_modules):
         print(f"Configuring SiPM bias voltage of module {n_mod}")
         config_file = os.path.join(config_folder, f"MOD{n_mod}.csv")
-        config_folder_raspi = Config().parse_yaml()["sipm_config_path_raspi"]
+        config_folder_raspi = config["sipm_config_path_raspi"]
         
         server = ''
         board = 0
@@ -88,7 +93,7 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
 
         # Copy the config file on the raspi
         subprocess.run(['scp', config_file, f'pi@{server}:{config_folder_raspi}'])
-        time.sleep(10)
+        time.sleep(WAIT_TIME)
 
         # Check if supplr ready and capture its output (stdout+stderr) as text
         check_supplr_status(server)
@@ -100,8 +105,8 @@ def set_SIPM(config_folder=None, manage_monitoring=True):
 
         print(f"SiPM bias voltage of module {n_mod} configured")
 
-        # if n_mod in [0,2]:
-        time.sleep(10)
+        if n_mod in [0,2]:
+            time.sleep(WAIT_TIME)
 
     if manage_monitoring == True:
             start_SiPMmoniotoring()

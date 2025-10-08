@@ -6,7 +6,7 @@ import json
 import shutil
 
 from lrscfg.client import Client
-from lrsctrl.config import Config
+from lrscfg.config import Config
 
 def regroup_tpc(Input):
     out = {}

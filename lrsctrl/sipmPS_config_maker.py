@@ -5,7 +5,7 @@ import glob
 import os
 import shutil
 
-from lrsctrl.config import Config
+from lrscfg.config import Config
 from lrscfg.client import Client
 
 def map_ledRun_id():

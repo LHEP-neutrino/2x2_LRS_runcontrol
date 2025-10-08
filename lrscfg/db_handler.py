@@ -3,7 +3,7 @@ import csv
 import os
 from datetime import datetime
 from prettytable import PrettyTable
-from lrsctrl.config import Config
+from lrscfg.config import Config
 
 class DB_Handler:
     def __init__(self):
