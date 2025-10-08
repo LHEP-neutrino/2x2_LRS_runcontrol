@@ -95,7 +95,7 @@ def check_valid_led_id(led_id):
 def make():
 	moas_name = Client().get_active_moas()
 	moas_path = os.path.join(Config().parse_yaml()["moas_path"], moas_name)
-	print(f" MOAS: {moas_name}")
+	# print(f" MOAS: {moas_name}")
 	moas_df = pd.read_csv(moas_path, usecols=["led_group_id_warm","tpc"])
 
 	pulser_config_folder = Config().parse_yaml()["pulser_config_path"]
@@ -121,7 +121,7 @@ def make():
 
 	unique_pulser_config = [list(chan_config) for chan_config in set(chans_config)]
 
-	print(f"unique_pulser_config_data ({len(unique_pulser_config)}): {unique_pulser_config}")
+	# print(f"unique_pulser_config_data ({len(unique_pulser_config)}): {unique_pulser_config}")
 	# return 0
 
 	
@@ -133,9 +133,9 @@ def make():
 	pulser_configs = []
 
 	for setting_no in range(max(len(elem) for elem in settings)):
-		print(f"\nSetting_no: {setting_no}")
+		# print(f"\nSetting_no: {setting_no}")
 		
-		print(f"{max(len(elem) for elem in settings)}")
+		# print(f"{max(len(elem) for elem in settings)}")
 		tmp = []
 		for i in range(len(settings)):
 			if setting_no < len(settings[i]):

@@ -43,9 +43,9 @@ from lrscfg.config import Config
 
 def make_calib_files():
     pulser_config_files_path = lrsctrl.pulser_config_maker.make()
-    print(f"Pulse config done: {pulser_config_files_path}")
+    # print(f"Pulse config done: {pulser_config_files_path}")
     sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
-    print(f"sipmPS config done: {sipmPS_configs_files_path}")
+    # print(f"sipmPS config done: {sipmPS_configs_files_path}")
 
     if len(pulser_config_files_path) != len(sipmPS_configs_files_path):
         raise ValueError(f"ERROR: The number of pulser configuration ({len(pulser_config_files_path)}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
@@ -133,9 +133,7 @@ def get_most_recent_file(directory):
 class Run_Info:
     def __init__(self):
         self.config = Config().parse_yaml()
-        now = datetime.now()
-        time_str = now.strftime("%Y%m%d_%H%M%S")
-        self.run_folder = os.path.join(self.config["calib_data"],f"{time_str}_LEDrun")
+        self.run_folder = os.path.abspath(self.config["calib_data"])
         
         moas = Client().get_active_moas()
         self.moas = os.path.join(self.config["moas_path"],moas)
@@ -208,9 +206,9 @@ class Run_Info:
         run_info["moas"] = self.moas
         run_info["subruns"] = self.subruns
 
-        os.makedirs(self.run_folder, exist_ok=True)
-
-        output_file = "run_summary.json"
+        now = datetime.now()
+        time_str = now.strftime("%Y%m%d_%H%M%S")
+        output_file = f"{time_str}_run_summary.json"
         output_path = os.path.join(self.run_folder, output_file)
 
         with open(output_path, "w") as f:

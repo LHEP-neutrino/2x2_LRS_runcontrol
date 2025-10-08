@@ -27,7 +27,7 @@ def check_supplr_status(server):
         time.sleep(WAIT_TIME)
         if answ != "CAN status: Free":
             print(f"Warning: supplr not ready on {server}. Output: {answ}")
-            
+            time.sleep(WAIT_TIME*2)       
         else:
             print(f"supplr ready on {server}")
             return 0

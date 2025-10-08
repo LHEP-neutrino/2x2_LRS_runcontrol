@@ -67,12 +67,12 @@ def make_sipmPS_config(ledRun_PSsipm_map):
     config_folders = []
 
     for nRun, PSchans in ledRun_PSsipm_map.items():
-        print(f"\n {nRun}:  {len(PSchans)}")
+        # print(f"\n {nRun}:  {len(PSchans)}")
         # Create folder for the key
         folder_path = os.path.join(output_path, str(nRun))
         os.makedirs(folder_path, mode=0o777, exist_ok=True)  # won't raise error if folder exists
         
-        print(f"Folder created: {folder_path}")
+        # print(f"Folder created: {folder_path}")
         config_folders.append(folder_path)
 
         mod0 = np.full(NchanPS, Off_V, dtype=float)
