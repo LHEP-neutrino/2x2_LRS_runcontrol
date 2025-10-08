@@ -208,8 +208,6 @@ class Run_Info:
         run_info["moas"] = self.moas
         run_info["subruns"] = self.subruns
 
-        os.makedirs(self.run_folder, exist_ok=True)
-
         output_file = "run_summary.json"
         output_path = os.path.join(self.run_folder, output_file)
 
