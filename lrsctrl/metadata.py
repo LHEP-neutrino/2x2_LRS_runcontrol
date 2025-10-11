@@ -9,10 +9,12 @@ import re
 import zlib
 import numpy as np
 import sqlite3
+import warnings
 
 import h5py
 
 from lrscfg.client import Client
+from lrscfg.config import Config
 
 def get_checksum(path: Path):
     cksum = 1
@@ -21,6 +23,78 @@ def get_checksum(path: Path):
         while data := f.read(chunksize):
             cksum = zlib.adler32(data, cksum)
     return cksum & 0xffffffff
+
+
+def get_afi_config():
+    """
+    Load and return the AFI JSON configuration referenced by the YAML key
+    'afi_config_path' from the application's parsed YAML config.
+
+    Returns:
+        dict: Parsed JSON content from the AFI config file.
+
+    Raises:
+        KeyError: if 'afi_config_path' is not present in the parsed YAML.
+        FileNotFoundError: if the referenced JSON file does not exist.
+        json.JSONDecodeError: if the file content is not valid JSON.
+    """
+    cfg = Config().parse_yaml()
+
+    afi_base = cfg.get('afi_config_path')
+    if not afi_base:
+        raise KeyError("'afi_config_path' not found in configuration")
+
+    afi_base = Path(os.path.expanduser(afi_base))
+    if not afi_base.is_absolute():
+        afi_base = Path(Config().app_path) / afi_base
+    afi_base = afi_base.resolve()
+
+    if not afi_base.exists() or not afi_base.is_dir():
+        raise FileNotFoundError(f"AFI config base directory not found: {afi_base}")
+
+    cur_env_path = cfg.get('cur_daq_env_path')
+    if not cur_env_path:
+        raise KeyError("'cur_daq_env_path' not found in configuration")
+
+    cur_env_path = Path(os.path.expanduser(cur_env_path))
+    if not cur_env_path.is_absolute():
+        cur_env_path = Path(Config().app_path) / cur_env_path
+    cur_env_path = cur_env_path.resolve()
+
+    if not cur_env_path.exists():
+        raise FileNotFoundError(f"cur_daq_env_path does not exist: {cur_env_path}")
+
+    with open(cur_env_path, 'r') as f:
+        env_name = f.read().strip()
+
+    if not env_name:
+        raise ValueError(f"No environment name found in {cur_env_path}")
+
+    # Build the expected paths for the four JSON files
+    expected = {
+        'RunControl': afi_base / 'RunControl' / f"{env_name}_rctl" / 'default.json',
+        'EvB': afi_base / 'EvB' / f"{env_name}_evbld" / 'default.json',
+        'Adc64_sum': afi_base / 'Adc64' / f"{env_name}_sum" / 'default.json',
+        'Adc64_reg': afi_base / 'Adc64' / f"{env_name}_reg" / 'default.json',
+    }
+
+    results = {}
+    missing = []
+    for key, p in expected.items():
+        p = Path(p)
+        if not p.exists():
+            missing.append(str(p))
+            continue
+        try:
+            with open(p, 'r') as jf:
+                results[key] = json.load(jf)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load JSON from {p}: {e}")
+
+    if missing:
+        raise FileNotFoundError(f"Missing AFI json files: {', '.join(missing)}")
+
+    return results
 
 def get_data_stream(f, args):
     if ds := args["data_stream"]:
@@ -207,11 +281,31 @@ def write_metadata_to_db(db_path, meta,args):
         subrun INTEGER,
         first_event_tai INTEGER,
         last_event_tai INTEGER,
-        active_moas TEXT
+        active_moas TEXT,
+        afi_runcontrol_json JSON,
+        afi_evb_json JSON,
+        afi_adc64_sum_json JSON,
+        afi_adc64_reg_json JSON
     )
     ''')
 
-    # Insert metadata into table
+    # AFI JSONs should be provided at run start and attached to args under
+    # 'afi_jsons'. Prefer those; otherwise attempt to load them here.
+    afi_runcontrol = afi_evb = afi_adc64_sum = afi_adc64_reg = None
+    afi_dict = None
+    if isinstance(args, dict) and 'afi_jsons' in args:
+        afi_dict = args.get('afi_jsons')
+    else:
+        afi_dict = None
+        warnings.warn("AFI JSONs not provided in args; cannot write to DB")
+
+    if afi_dict:
+        afi_runcontrol = json.dumps(afi_dict.get('RunControl')) if 'RunControl' in afi_dict else None
+        afi_evb = json.dumps(afi_dict.get('EvB')) if 'EvB' in afi_dict else None
+        afi_adc64_sum = json.dumps(afi_dict.get('Adc64_sum')) if 'Adc64_sum' in afi_dict else None
+        afi_adc64_reg = json.dumps(afi_dict.get('Adc64_reg')) if 'Adc64_reg' in afi_dict else None
+
+    # Insert metadata into table (now with 4 extra columns)
     cursor.execute('''
     INSERT INTO lrs_runs_data (
         filename, 
@@ -225,8 +319,12 @@ def write_metadata_to_db(db_path, meta,args):
         subrun, 
         first_event_tai, 
         last_event_tai, 
-        active_moas
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        active_moas,
+        afi_runcontrol_json,
+        afi_evb_json,
+        afi_adc64_sum_json,
+        afi_adc64_reg_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         meta['name'],
         meta['size'],
@@ -239,7 +337,11 @@ def write_metadata_to_db(db_path, meta,args):
         meta['metadata']['core.runs_subruns'][0],
         meta['metadata']['core.first_event_number'],
         meta['metadata']['core.last_event_number'],
-        meta['metadata']['dune.lrs_active_config']
+        meta['metadata']['dune.lrs_active_config'],
+        afi_runcontrol,
+        afi_evb,
+        afi_adc64_sum,
+        afi_adc64_reg,
     ))
 
     conn.commit()
