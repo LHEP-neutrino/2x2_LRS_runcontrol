@@ -11,6 +11,11 @@ pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
 vga_config_path: '/data/LRS_det_config/vga_config/'
 sipm_config_path: '/data/LRS_det_config/sipmps_config/'
 sipm_config_path_raspi: '/home/pi/supplr/Configuration_CSVs'
+afi_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics'
+cur_daq_env_path: '/home/acd/acdaq/LRS_DAQ/DAQ_bridge/current_daq_env'
+
+#DATA PATHS
+data_path: '/data/LRS/data/'
 
 #CALIB RUNS
 calib_data: '/data/LRS/calib_runs/'

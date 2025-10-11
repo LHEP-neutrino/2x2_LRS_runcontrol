@@ -8,7 +8,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
-from lrsctrl.metadata import dump_metadata
+from lrsctrl.metadata import dump_metadata, get_afi_config
 from lrscfg.client import Client
 from lrscfg.config import Config
 from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
@@ -49,6 +49,14 @@ def start_data_run():
     global CUR_RUN
     data = request.get_json()
     CUR_RUN = data
+    # Pull AFI JSONs now (at run start) and store them in the current run info
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
     start_rc()
     return jsonify(None)
 
