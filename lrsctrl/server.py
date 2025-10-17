@@ -191,7 +191,7 @@ class FileHandler(FileSystemEventHandler):
     def process_file(self, file_path):
         global CUR_RUN
         app.logger.info(f"Process file {file_path}")
-        app.logger.debug(CUR_RUN)
+        #app.logger.debug(CUR_RUN)
         if CUR_RUN:
             meta_args = CUR_RUN
             meta_args["database"] = Config().parse_yaml()["db_path"]
