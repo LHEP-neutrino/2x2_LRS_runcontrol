@@ -96,6 +96,13 @@ def start_calib_run():
             "data_stream": "calibration",
             "run_starting_instance": "lrsctrl"
         }
+        
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
 
     configs_led, configs_sipmPS = utils.make_calib_files()
     app.logger.info("CALIB: Pulser and SiPM config files written")
