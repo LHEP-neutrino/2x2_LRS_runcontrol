@@ -123,14 +123,8 @@ def make(app):
 	# print(f"configs ({len(set(chans_config))}): {set(chans_config)}")
 	# return 0
 
-	# Preserve the first-seen order while removing duplicates (set() is unordered
-	# and can cause non-reproducible ordering between runs).
-	unique_seen = []
-	for chan_config in chans_config:
-		if chan_config not in unique_seen:
-			unique_seen.append(chan_config)
-	unique_pulser_config = [list(chan_config) for chan_config in unique_seen]
-	app.logger.debug(f"Get the led configs: {len(unique_pulser_config)} unique configs found (order preserved)")
+	unique_pulser_config = [list(chan_config) for chan_config in set(chans_config)]
+	app.logger.debug(f"Get the led configs: {len(unique_pulser_config)} unique configs found")
 
 	# print(f"unique_pulser_config_data ({len(unique_pulser_config)}): {unique_pulser_config}")
 	# return 0

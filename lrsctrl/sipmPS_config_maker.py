@@ -11,9 +11,7 @@ from lrscfg.client import Client
 def map_ledRun_id():
     led_id_map = {}
     folder_ledRun_config = Config().parse_yaml()["pulser_config_path"]
-    # Use a sorted list of config files so mapping between pulser runs and
-    # SiPM PS channels is deterministic across runs.
-    for cfg_file in sorted(glob.glob(os.path.join(folder_ledRun_config, "*.json"))):
+    for cfg_file in glob.glob(os.path.join(folder_ledRun_config, "*.json")): 
         filename = os.path.basename(cfg_file)
         with open(cfg_file) as f:
             data = json.load(f)
