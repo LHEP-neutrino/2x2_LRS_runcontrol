@@ -92,7 +92,9 @@ def check_valid_led_id(led_id):
 	return chan <= 16 and  s <= 255 and p <= 255
 
 
-def make():
+def make(app):
+
+	app.logger.debug("Read the config info")
 	moas_name = Client().get_active_moas()
 	moas_path = os.path.join(Config().parse_yaml()["moas_path"], moas_name)
 	# print(f" MOAS: {moas_name}")
@@ -104,6 +106,8 @@ def make():
 	if os.path.exists(pulser_config_folder):
 		shutil.rmtree(pulser_config_folder)
 	os.makedirs(pulser_config_folder, mode=0o755)
+
+	app.logger.debug(f"Created output folder: {pulser_config_folder}")
 	
 	led_groups = moas_df["led_group_id_warm"]
 	tpcs = moas_df["tpc"]
@@ -119,7 +123,14 @@ def make():
 	# print(f"configs ({len(set(chans_config))}): {set(chans_config)}")
 	# return 0
 
-	unique_pulser_config = [list(chan_config) for chan_config in set(chans_config)]
+	# Preserve the first-seen order while removing duplicates (set() is unordered
+	# and can cause non-reproducible ordering between runs).
+	unique_seen = []
+	for chan_config in chans_config:
+		if chan_config not in unique_seen:
+			unique_seen.append(chan_config)
+	unique_pulser_config = [list(chan_config) for chan_config in unique_seen]
+	app.logger.debug(f"Get the led configs: {len(unique_pulser_config)} unique configs found (order preserved)")
 
 	# print(f"unique_pulser_config_data ({len(unique_pulser_config)}): {unique_pulser_config}")
 	# return 0
@@ -146,6 +157,8 @@ def make():
 			# input("Press Enter to continue...")
 
 
+	app.logger.debug(f"The LED configs were regrouped in: {len(pulser_configs)} runs")
+
 	pulser_series_configs = []
 	pulser_parallels_configs = []
 	config_files_path = []
@@ -154,6 +167,10 @@ def make():
 		
 		series = np.full((16),0)
 		parallels = np.full((16),100)
+		
+		# The "zero values" of chan. 1,2,3,4 (from mod0) are s=0 and p=0
+		for i in range(4):
+			parallels[i] = 0
 
 		for led_id in config:
 			if check_valid_led_id(led_id):
@@ -169,6 +186,8 @@ def make():
 
 	for config_file_path, pulser_series_config, p_parallels_config in zip(config_files_path, pulser_series_configs, pulser_parallels_configs):
 		json_writer(config_file_path, pulser_series_config, p_parallels_config)
+
+	app.logger.debug(f"The LED configs were written, paths returned")
 	return config_files_path
 
 if __name__ == "__main__":

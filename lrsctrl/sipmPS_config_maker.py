@@ -11,7 +11,9 @@ from lrscfg.client import Client
 def map_ledRun_id():
     led_id_map = {}
     folder_ledRun_config = Config().parse_yaml()["pulser_config_path"]
-    for cfg_file in glob.glob(os.path.join(folder_ledRun_config, "*.json")): 
+    # Use a sorted list of config files so mapping between pulser runs and
+    # SiPM PS channels is deterministic across runs.
+    for cfg_file in sorted(glob.glob(os.path.join(folder_ledRun_config, "*.json"))):
         filename = os.path.basename(cfg_file)
         with open(cfg_file) as f:
             data = json.load(f)
@@ -52,17 +54,22 @@ def map_ledRun_PSsipm(led_id_map):
     return ledRun_PSsipm_map
 
 
-def make_sipmPS_config(ledRun_PSsipm_map):
+def make_sipmPS_config(ledRun_PSsipm_map, app):
+
+    
     folder_sipmps_config = Config().parse_yaml()["sipm_config_path"]
     output_path = os.path.join(folder_sipmps_config, "LEDRuns")
 
     NchanPS = 128
     indices = np.arange(1,NchanPS+1)
     Off_V = int(Config().parse_yaml()["default_voltage"])
+    app.logger.debug(f"Parsed the config.yaml, default voltage: {Off_V}")
 
     # Delete the output_path folder if it exists
     if os.path.exists(output_path):
         shutil.rmtree(output_path)
+
+    app.logger.debug(f"Cleaned the output folder: {output_path}")
 
     config_folders = []
 
@@ -102,19 +109,22 @@ def make_sipmPS_config(ledRun_PSsipm_map):
         np.savetxt(os.path.join(folder_path,"MOD2.csv"), mod2_wChan, delimiter=",", fmt=["%d", "%.2f"])
         np.savetxt(os.path.join(folder_path,"MOD3.csv"), mod3_wChan, delimiter=",", fmt=["%d", "%.2f"])
 
+    app.logger.debug(f"{len(config_folders)} SiPM config files saved in {output_path}")
+
     return config_folders 
     
 
 
-def make():
+def make(app):
+    app.logger.debug("Map the LED ID to the corresponding sipmPS channel")
     ledRun_id_map = map_ledRun_id()
     ledRun_PSsipm_map = map_ledRun_PSsipm(ledRun_id_map)
 
     # for key in dict(sorted(ledRun_PSsipm_map.items())).keys():
     #     print(f"{key}:\n{dict(sorted(ledRun_PSsipm_map.items()))[key]}")
-
-    sipmPS_configs = make_sipmPS_config(ledRun_PSsipm_map)
-    print(f"{len(sipmPS_configs)} SiPM configuration files were made.")
+    app.logger.debug("Make the SiPM config files")
+    sipmPS_configs = make_sipmPS_config(ledRun_PSsipm_map, app)
+    # print(f"{len(sipmPS_configs)} SiPM configuration files were made.")
 
     return sipmPS_configs
 
