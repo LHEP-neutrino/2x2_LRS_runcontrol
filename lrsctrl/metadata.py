@@ -241,7 +241,8 @@ def get_metadata(f, args):
         'retention.class': 'rawdata',
         'retention.status': 'active',
 
-        'dune.lrs_active_config': cl.get_active_moas()
+        'dune.lrs_active_config': cl.get_active_moas(),
+        'dune.lrs_active_thresholds': cl.get_active_foas(),
     }
 
     return meta
@@ -285,7 +286,8 @@ def write_metadata_to_db(db_path, meta,args):
         afi_runcontrol_json JSON,
         afi_evb_json JSON,
         afi_adc64_sum_json JSON,
-        afi_adc64_reg_json JSON
+        afi_adc64_reg_json JSON,
+        active_foas TEXT
     )
     ''')
 
@@ -323,8 +325,9 @@ def write_metadata_to_db(db_path, meta,args):
         afi_runcontrol_json,
         afi_evb_json,
         afi_adc64_sum_json,
-        afi_adc64_reg_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        afi_adc64_reg_json,
+        active_foas
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         meta['name'],
         meta['size'],
@@ -342,6 +345,7 @@ def write_metadata_to_db(db_path, meta,args):
         afi_evb,
         afi_adc64_sum,
         afi_adc64_reg,
+        meta['metadata']['dune.lrs_active_thresholds']
     ))
 
     conn.commit()
