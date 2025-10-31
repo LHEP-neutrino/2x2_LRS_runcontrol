@@ -4,6 +4,7 @@ import pandas as pd
 import json
 from datetime import datetime
 
+
 import  lrsctrl.pulser_config_maker
 import  lrsctrl.sipmPS_config_maker
 from lrscfg.client import Client
@@ -41,16 +42,18 @@ from lrscfg.config import Config
 
 
 
-def make_calib_files():
-    pulser_config_files_path = lrsctrl.pulser_config_maker.make()
+def make_calib_files(app):
+    app.logger.debug("Start the pulser configs maker")
+    pulser_config_files_path = lrsctrl.pulser_config_maker.make(app)
     # print(f"Pulse config done: {pulser_config_files_path}")
-    sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make()
+    app.logger.debug("Start the sipmPS configs maker")
+    sipmPS_configs_files_path = lrsctrl.sipmPS_config_maker.make(app)
     # print(f"sipmPS config done: {sipmPS_configs_files_path}")
 
     if len(pulser_config_files_path) != len(sipmPS_configs_files_path):
         raise ValueError(f"ERROR: The number of pulser configuration ({len(pulser_config_files_path)}) does not match the number of sipmPS configuration ({len(sipmPS_configs_files_path)})")
 
-    print(f"Number of Configurations: {len(pulser_config_files_path)}")
+    print(f"Number of Configurations written: {len(pulser_config_files_path)}")
 
     return pulser_config_files_path, sipmPS_configs_files_path
 
@@ -131,7 +134,7 @@ def get_most_recent_file(directory):
 
 
 class Run_Info:
-    def __init__(self):
+    def __init__(self, app):
         self.config = Config().parse_yaml()
         self.run_folder = os.path.abspath(self.config["calib_data"])
         
@@ -140,11 +143,15 @@ class Run_Info:
 
         self.subruns = []
 
+        self.logger = app.logger
+
+
     def sipmPS_to_adc(self, sipmPS_list):
         """
             Take a list of the form [(modN, sipmPS_chanM), (modX, sipmPS_chanY), ...]
             and convert it to a list of the form [[adcA, adc_chanB], [adcI, adc_chanJ], ...]
         """
+        self.logger.debug("Converting PS coordinate to adc coordinate")
         # Load MOAS
         moas = pd.read_csv(self.moas, usecols=["mod_num", "sipm_bias_chan", "adc_nr", "adc_0in_chan"])
 
@@ -165,6 +172,7 @@ class Run_Info:
     
 
     def get_active_chans(self, sipmPS_config_folder):
+        self.logger.debug("Get the active channels")
         active_chans = []
         default_voltage = round(self.config["default_voltage"], 2)
 
@@ -188,6 +196,7 @@ class Run_Info:
         return adc_active_chans
 
     def append_subrun(self, subrun_number, pulser_config, sipmPS_config):
+        self.logger.debug(f"Append subrun {subrun_number} to the run info")
         subrun_info = {
             "subrun" : subrun_number,
             "data_file" : get_most_recent_file(self.run_folder),
@@ -210,6 +219,8 @@ class Run_Info:
         time_str = now.strftime("%Y%m%d_%H%M%S")
         output_file = f"{time_str}_run_summary.json"
         output_path = os.path.join(self.run_folder, output_file)
+
+        self.logger.debug(f"Writing the run info into {output_path}")
 
         with open(output_path, "w") as f:
             json.dump(run_info, f, indent=4)

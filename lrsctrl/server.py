@@ -85,10 +85,12 @@ def stop_data_run():
 @app.route("/api/start_calib_run/")
 def start_calib_run():
     app.logger.info("CALIB: Start calib run")
-    run_info = utils.Run_Info()
+    run_info = utils.Run_Info(app)
 
     config_dict = Config().parse_yaml()
+    app.logger.debug(f"CALIB: Set the pulser period: {config_dict['pulser_period']} ms")
     pp.set_trig(config_dict["pulser_period"])
+
     with CUR_RUN_LOCK:
         global CUR_RUN
         CUR_RUN = {
@@ -97,7 +99,15 @@ def start_calib_run():
             "run_starting_instance": "lrsctrl"
         }
 
-    configs_led, configs_sipmPS = utils.make_calib_files()
+    app.logger.info("CALIB: Get afi config")
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
+    configs_led, configs_sipmPS = utils.make_calib_files(app)
     app.logger.info("CALIB: Pulser and SiPM config files written")
     # app.logger.info(f"CALIB: Pulser files {configs_led}")
     # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
@@ -105,33 +115,38 @@ def start_calib_run():
 
     # return jsonify(None)
 
-    stop_SiPMmoniotoring()
+    stop_SiPMmoniotoring(logger=app.logger)
     app.logger.info("CALIB: SiPM bias voltage monitoring stopped")
     
     for i, (config_led, config_sipmPS) in enumerate(zip(configs_led, configs_sipmPS)):
-        app.logger.info(f'CALIB: Run calib run {i} ({i+1}/{len(configs_led)})')
+        app.logger.info(f'CALIB: ~~~~~ Start calib run {i} ({i+1}/{len(configs_led)}) ~~~~~')
 
         pp.set_channels_file(config_led)
         app.logger.info(f'CALIB: Pulser channels set')
-        set_SIPM(config_sipmPS, manage_monitoring=False)
-        app.logger.info(f'CALIB: SiPM bas voltage channels set')
+        set_SIPM(config_sipmPS, manage_monitoring=False, logger=app.logger)
+        app.logger.info(f'CALIB: SiPM bias voltage channels set')
 
         start_rc()
+        app.logger.debug(f'CALIB: ~~~ Run started ~~~')
         time.sleep(8)
         time.sleep(config_dict["pulser_period"])
         pp.run_trig(config_dict["pulser_duration"])
-        
-
+        app.logger.debug(f'CALIB: Pulser finished')
         stop_rc()
+        app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
+
         run_info.append_subrun(i, config_led, config_sipmPS)
         time.sleep(8)
 
+        # if i>2:
+        #     break
+
     time.sleep(10)
-    start_SiPMmoniotoring()
+    start_SiPMmoniotoring(logger=app.logger)
     app.logger.info("CALIB: SiPM bias voltage monitoring restored")
 
     run_info.write_run_info()
-    app.logger.info('CALIB: Run finished, ok to cancel')
+    app.logger.info('CALIB: ~~~~~~~ Run finished, run info written ~~~~~~~')
     
     if file_handler.last_file_path:
         app.logger.debug("Start process last file")
@@ -191,7 +206,7 @@ class FileHandler(FileSystemEventHandler):
     def process_file(self, file_path):
         global CUR_RUN
         app.logger.info(f"Process file {file_path}")
-        app.logger.debug(CUR_RUN)
+        #app.logger.debug(CUR_RUN)
         if CUR_RUN:
             meta_args = CUR_RUN
             meta_args["database"] = Config().parse_yaml()["db_path"]

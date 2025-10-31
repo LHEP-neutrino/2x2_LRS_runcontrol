@@ -30,7 +30,26 @@ def get_active_moas():
     print(Client().get_active_moas())
     return Client().get_active_moas()
 
-#@lrscfg.command()
-#@click.option("--version","-v", required=True, type=str, help="MOAS version tag ()")
-#def set_active_moas(version):
-#    Client().set_active_moas(version)
+# FOAS equivalents to the MOAS commands
+@lrscfg.command()
+@click.option("--tag","-t", required=True, type=str, help="Description tag")
+def pull_foas(tag):
+    Client().pull_foas(tag)
+    
+
+@lrscfg.command()
+@click.option("--version","-v", required=False, default=None, type=str, help="FOAS version tag (if not provided latest pulled FOAS used)")
+def activate_foas(version):
+    Client().activate_foas(version)
+    
+
+@lrscfg.command()
+def get_latest_foas():
+    print(Client().get_latest_foas())
+    return Client().get_latest_foas()
+
+
+@lrscfg.command()
+def get_active_foas():
+    print(Client().get_active_foas())
+    return Client().get_active_foas()
