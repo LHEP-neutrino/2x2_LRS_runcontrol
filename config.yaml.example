@@ -24,6 +24,7 @@ data_path: '/data/LRS/data/'
 
 #CALIB RUNS
 calib_data: '/data/LRS/calib_runs/'
+pulser_inacitve_chans: [] #Starting from 0, e.g [0, 3, 5, 6] 
 pulser_period: 5 #ms
 pulser_duration: 100 #s
 default_voltage: 1 #V

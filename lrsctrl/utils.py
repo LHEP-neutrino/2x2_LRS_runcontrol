@@ -195,7 +195,7 @@ class Run_Info:
 
         return adc_active_chans
 
-    def append_subrun(self, subrun_number, pulser_config, sipmPS_config):
+    def append_subrun_calib(self, subrun_number, pulser_config, sipmPS_config):
         self.logger.debug(f"Append subrun {subrun_number} to the run info")
         subrun_info = {
             "subrun" : subrun_number,
@@ -203,6 +203,18 @@ class Run_Info:
             "pulser_config" : pulser_config,
             "sipmPS_config" : sipmPS_config,
             "active_chans" : self.get_active_chans(sipmPS_config)
+        }
+        
+        self.subruns.append(subrun_info)
+
+        return 0
+    
+    def append_subrun_pulser_scan(self, subrun_number, pulser_config):
+        self.logger.debug(f"Append subrun {subrun_number} to the run info")
+        subrun_info = {
+            "subrun" : subrun_number,
+            "data_file" : get_most_recent_file(self.run_folder),
+            "pulser_config" : pulser_config,
         }
         
         self.subruns.append(subrun_info)

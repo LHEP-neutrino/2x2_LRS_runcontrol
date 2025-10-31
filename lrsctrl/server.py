@@ -14,6 +14,7 @@ from lrscfg.config import Config
 from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
 import lrsctrl.utils as utils
 import ppulse.client as pp
+import lrsctrl.pulser_config_maker as pp_config
 
 cl = Client()
 app = Flask(__name__)
@@ -135,7 +136,7 @@ def start_calib_run():
         stop_rc()
         app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
 
-        run_info.append_subrun(i, config_led, config_sipmPS)
+        run_info.append_subrun_calib(i, config_led, config_sipmPS)
         time.sleep(8)
 
         # if i>2:
@@ -153,6 +154,79 @@ def start_calib_run():
         with FILE_PROCESS_LOCK:
             file_handler.process_file(file_handler.last_file_path)
         app.logger.debug("Done process last file")
+    return jsonify(None)
+
+# Calibration run controls
+@app.route("/api/start_pulser_scan/")
+def start_pulser_scan():
+    app.logger.info("CALIB: Start pulser scan")
+    run_info = utils.Run_Info(app)
+
+    config_dict = Config().parse_yaml()
+    app.logger.debug(f"CALIB: Set the pulser period: {config_dict['pulser_period']} ms")
+    pp.set_trig(config_dict["pulser_period"])
+
+    with CUR_RUN_LOCK:
+        global CUR_RUN
+        CUR_RUN = {
+            "run": 0,
+            "data_stream": "calibration",
+            "run_starting_instance": "lrsctrl"
+        }
+
+    app.logger.info("CALIB: Get afi config")
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
+    configs_led = pp_config.make_scan_config(app.logger)
+    app.logger.info(f"CALIB: {len(configs_led)} pulser config files written")
+    # app.logger.info(f"CALIB: Pulser files {configs_led}")
+    # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
+
+
+    # return jsonify(None)
+
+    # stop_SiPMmoniotoring(logger=app.logger)
+    # app.logger.info("CALIB: SiPM bias voltage monitoring stopped")
+    
+    for i, config_led in enumerate(configs_led):
+        app.logger.info(f'CALIB: ~~~~~ Start pulser scan run {i} ({i+1}/{len(configs_led)}) ~~~~~')
+
+        pp.set_channels_file(config_led)
+        app.logger.info(f'CALIB: Pulser channels set')
+
+        start_rc()
+        app.logger.debug(f'CALIB: ~~~ Run started ~~~')
+        time.sleep(8)
+        time.sleep(config_dict["pulser_period"])
+        pp.run_trig(config_dict["pulser_duration"])
+        app.logger.debug(f'CALIB: Pulser finished')
+        stop_rc()
+        app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
+
+        run_info.append_subrun_pulser_scan(i, config_led)
+        time.sleep(8)
+
+        # if i>2:
+        #     break
+
+    time.sleep(10)
+    # start_SiPMmoniotoring(logger=app.logger)
+    # app.logger.info("CALIB: SiPM bias voltage monitoring restored")
+
+    run_info.write_run_info()
+    app.logger.info('CALIB: ~~~~~~~ Run finished, run info written ~~~~~~~')
+    
+    if file_handler.last_file_path:
+        app.logger.debug("Start process last file")
+        with FILE_PROCESS_LOCK:
+            file_handler.process_file(file_handler.last_file_path)
+        app.logger.debug("Done process last file")
+        
     return jsonify(None)
 
 # Calibration run controls
