@@ -1,6 +1,7 @@
 import yaml
-from os.path import abspath
-
+import os
+from datetime import datetime
+import pandas as pd
 
 REPOSITORY_NAME = f'2x2_LRS_runcontrol'
 CONFIG_PATH = f'/{REPOSITORY_NAME}/config.yaml'
@@ -8,7 +9,7 @@ CONFIG_PATH = f'/{REPOSITORY_NAME}/config.yaml'
 
 class Config:
     def __init__(self):
-        self.path = abspath(__file__)
+        self.path = os.path.abspath(__file__)
         path_split = self.path.split('/')
         self.app_path = ''
         for word in path_split:
@@ -25,3 +26,4 @@ class Config:
         with open(self.config_path(), "r") as stream:
             self.data = yaml.safe_load(stream)
             return self.data
+

@@ -2,17 +2,19 @@ import logging
 from flask import Flask, request, jsonify
 from waitress import serve
 import threading, time
-from datetime import datetime
-from pathlib import Path
+
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from lrsctrl.config import Config
 from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
-from lrsctrl.metadata import dump_metadata
+from lrsctrl.metadata import dump_metadata, get_afi_config
 from lrscfg.client import Client
-from lrsctrl.run_calibration import *
+from lrscfg.config import Config
+from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
+import lrsctrl.utils as utils
 import ppulse.client as pp
+import lrsctrl.pulser_config_maker as pp_config
 
 cl = Client()
 app = Flask(__name__)
@@ -48,6 +50,14 @@ def start_data_run():
     global CUR_RUN
     data = request.get_json()
     CUR_RUN = data
+    # Pull AFI JSONs now (at run start) and store them in the current run info
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
     start_rc()
     return jsonify(None)
 
@@ -75,8 +85,13 @@ def stop_data_run():
 # Calibration run controls
 @app.route("/api/start_calib_run/")
 def start_calib_run():
+    app.logger.info("CALIB: Start calib run")
+    run_info = utils.Run_Info(app)
+
     config_dict = Config().parse_yaml()
+    app.logger.debug(f"CALIB: Set the pulser period: {config_dict['pulser_period']} ms")
     pp.set_trig(config_dict["pulser_period"])
+
     with CUR_RUN_LOCK:
         global CUR_RUN
         CUR_RUN = {
@@ -84,31 +99,143 @@ def start_calib_run():
             "data_stream": "calibration",
             "run_starting_instance": "lrsctrl"
         }
-    app.logger.info("CALIB: Start calib run")
-    commands = run_calibration()
-    app.logger.info("CALIB: Pulser config files written")
-    for i, command in enumerate(commands):
-        app.logger.info('CALIB: Run calib run %d of %d: %s' % (i+1, len(commands), command))
-        pp.set_channels_file(command)
-        start_rc()
-        #time.sleep(config_dict["pulser_period"])
-        pp.run_trig(config_dict["pulser_duration"])
-        append_json_name(command, command)
-        stop_rc()
-        time.sleep(8)
-    time.sleep(10)
 
-    now = datetime.now()
-    dt_string = now.strftime("%Y.%m.%d.%H.%M.%S")
-    out_file = dt_string + '.json'
-    convert_to_adcs(out_file)
-    app.logger.info('CALIB: Run finished, ok to cancel')
+    app.logger.info("CALIB: Get afi config")
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
+    configs_led, configs_sipmPS = utils.make_calib_files(app)
+    app.logger.info("CALIB: Pulser and SiPM config files written")
+    # app.logger.info(f"CALIB: Pulser files {configs_led}")
+    # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
+
+
+    # return jsonify(None)
+
+    stop_SiPMmoniotoring(logger=app.logger)
+    app.logger.info("CALIB: SiPM bias voltage monitoring stopped")
+    
+    for i, (config_led, config_sipmPS) in enumerate(zip(configs_led, configs_sipmPS)):
+        app.logger.info(f'CALIB: ~~~~~ Start calib run {i} ({i+1}/{len(configs_led)}) ~~~~~')
+
+        pp.set_channels_file(config_led)
+        app.logger.info(f'CALIB: Pulser channels set')
+        set_SIPM(config_sipmPS, manage_monitoring=False, logger=app.logger)
+        app.logger.info(f'CALIB: SiPM bias voltage channels set')
+
+        start_rc()
+        app.logger.debug(f'CALIB: ~~~ Run started ~~~')
+        time.sleep(8)
+        time.sleep(config_dict["pulser_period"])
+        pp.run_trig(config_dict["pulser_duration"])
+        app.logger.debug(f'CALIB: Pulser finished')
+        stop_rc()
+        app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
+
+        run_info.append_subrun_calib(i, config_led, config_sipmPS)
+        time.sleep(8)
+
+        # if i>2:
+        #     break
+
+    time.sleep(10)
+    start_SiPMmoniotoring(logger=app.logger)
+    app.logger.info("CALIB: SiPM bias voltage monitoring restored")
+
+    run_info.write_run_info()
+    app.logger.info('CALIB: ~~~~~~~ Run finished, run info written ~~~~~~~')
     
     if file_handler.last_file_path:
         app.logger.debug("Start process last file")
         with FILE_PROCESS_LOCK:
             file_handler.process_file(file_handler.last_file_path)
         app.logger.debug("Done process last file")
+    return jsonify(None)
+
+# Calibration run controls
+@app.route("/api/start_pulser_scan/")
+def start_pulser_scan():
+    app.logger.info("CALIB: Start pulser scan")
+    run_info = utils.Run_Info(app)
+
+    config_dict = Config().parse_yaml()
+    app.logger.debug(f"CALIB: Set the pulser period: {config_dict['pulser_period']} ms")
+    pp.set_trig(config_dict["pulser_period"])
+
+    with CUR_RUN_LOCK:
+        global CUR_RUN
+        CUR_RUN = {
+            "run": 0,
+            "data_stream": "calibration",
+            "run_starting_instance": "lrsctrl"
+        }
+
+    app.logger.info("CALIB: Get afi config")
+    try:
+        afi_jsons = get_afi_config()
+        # store the dict under a single key so metadata writer can pick it up
+        CUR_RUN['afi_jsons'] = afi_jsons
+    except Exception as e:
+        app.logger.warning(f"Failed to load AFI configs at run start: {e}")
+
+    configs_led = pp_config.make_scan_config(app.logger)
+    app.logger.info(f"CALIB: {len(configs_led)} pulser config files written")
+    # app.logger.info(f"CALIB: Pulser files {configs_led}")
+    # app.logger.info(f"CALIB: sipmPS files {configs_sipmPS}")
+
+
+    # return jsonify(None)
+
+    # stop_SiPMmoniotoring(logger=app.logger)
+    # app.logger.info("CALIB: SiPM bias voltage monitoring stopped")
+    
+    for i, config_led in enumerate(configs_led):
+        app.logger.info(f'CALIB: ~~~~~ Start pulser scan run {i} ({i+1}/{len(configs_led)}) ~~~~~')
+
+        pp.set_channels_file(config_led)
+        app.logger.info(f'CALIB: Pulser channels set')
+
+        start_rc()
+        app.logger.debug(f'CALIB: ~~~ Run started ~~~')
+        time.sleep(8)
+        time.sleep(config_dict["pulser_period"])
+        pp.run_trig(config_dict["pulser_duration"])
+        app.logger.debug(f'CALIB: Pulser finished')
+        stop_rc()
+        app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
+
+        run_info.append_subrun_pulser_scan(i, config_led)
+        time.sleep(8)
+
+        # if i>2:
+        #     break
+
+    time.sleep(10)
+    # start_SiPMmoniotoring(logger=app.logger)
+    # app.logger.info("CALIB: SiPM bias voltage monitoring restored")
+
+    run_info.write_run_info()
+    app.logger.info('CALIB: ~~~~~~~ Run finished, run info written ~~~~~~~')
+    
+    if file_handler.last_file_path:
+        app.logger.debug("Start process last file")
+        with FILE_PROCESS_LOCK:
+            file_handler.process_file(file_handler.last_file_path)
+        app.logger.debug("Done process last file")
+        
+    return jsonify(None)
+
+# Calibration run controls
+@app.route("/api/start_test/")
+def start_test():
+    print("command reached the server")
+    
+    
+    print("command executed, thank for choosing lrsctrl")
     return jsonify(None)
 
 
@@ -153,7 +280,7 @@ class FileHandler(FileSystemEventHandler):
     def process_file(self, file_path):
         global CUR_RUN
         app.logger.info(f"Process file {file_path}")
-        app.logger.debug(CUR_RUN)
+        #app.logger.debug(CUR_RUN)
         if CUR_RUN:
             meta_args = CUR_RUN
             meta_args["database"] = Config().parse_yaml()["db_path"]

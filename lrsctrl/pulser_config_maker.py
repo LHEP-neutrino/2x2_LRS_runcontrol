@@ -1,14 +1,15 @@
 import pandas as pd
 import numpy as np
-import csv
-import sys
 import os
 from datetime import datetime
+import json
+import shutil
 
 from lrscfg.client import Client
-from lrsctrl.config import Config
+from lrscfg.config import Config
 
-def find(Input):
+
+def regroup_tpc(Input):
     out = {}
     for elem in Input:
         try:
@@ -17,8 +18,8 @@ def find(Input):
             out[elem[0]] = list(elem)
     return [tuple(values) for values in out.values()]
 
-def json_writer(file_index, series, parallel):
-	import json
+def json_writer(config_file_path, series, parallel):
+	
 	# Data to be written
 	dictionary = {#"calib_run": {"run_number": file_index},
 	"channels": {
@@ -44,10 +45,9 @@ def json_writer(file_index, series, parallel):
 	# Serializing json
 	json_object = json.dumps(dictionary)
 	# Writing to sample.json
-	name = Config().parse_yaml()["pulser_config_path"] + file_index + ".json"
-	print(name)
-	with open(name, "w") as outfile:
-		outfile.write(json_object)
+	print(config_file_path)
+	with open(config_file_path, "w") as output_file:
+		output_file.write(json_object)
 
 """
 #json_writer()
@@ -76,63 +76,178 @@ else:
 	filename = "/home/acd/acdaq/LRS_DAQ/soft/2x2PulserSoft/Pulser/MoAS/"+file
 
 """
-def make():
-	cl = Client()
-	filename = cl.get_active_moas()
-	print(filename, Config().parse_yaml()["moas_path"])
-	df = pd.read_csv(Config().parse_yaml()["moas_path"]+filename)
 
-	#df = pd.read_csv(filename)
-	#print("Using File: ",filename)
 
-	led_groups = df.led_group_id_warm
-	mod_nums = df.mod_num
-	tpcs = df.tpc
 
-	configs = []
+def get_led_params(led_id):
+	chan = led_id // 1_000_000 % 100	# second and third digits
+	s = (led_id // 1_000) % 1_000  		# middle 3 digits
+	p = led_id % 1_000        			# last 3 digits
 
-	TPC_configs = np.empty(shape=(8, 64), dtype='object')
+	return chan, s, p
+
+def check_valid_led_id(led_id):
+	chan, s, p = get_led_params(led_id)
+
+	# Check that the id is valid 
+	return chan <= 16 and  s <= 255 and p <= 255
+
+
+def make(app):
+
+	app.logger.debug("Read the config info")
+	moas_name = Client().get_active_moas()
+	moas_path = os.path.join(Config().parse_yaml()["moas_path"], moas_name)
+	# print(f" MOAS: {moas_name}")
+	moas_df = pd.read_csv(moas_path, usecols=["led_group_id_warm","tpc"])
+
+	pulser_config_folder = Config().parse_yaml()["pulser_config_path"]
+
+	# Delete the output_path folder if it exists and create it again
+	if os.path.exists(pulser_config_folder):
+		shutil.rmtree(pulser_config_folder)
+	os.makedirs(pulser_config_folder, mode=0o755)
+
+	app.logger.debug(f"Created output folder: {pulser_config_folder}")
+	
+	led_groups = moas_df["led_group_id_warm"]
+	tpcs = moas_df["tpc"]
+
+	chans_config = []
 
 	for tpc, led_group in zip(tpcs, led_groups):
-		configs += [[tpc,led_group]]
+		if check_valid_led_id(led_group):
+			chans_config += [(tpc,led_group)]
 
-	unique_data = [list(x) for x in set(tuple(x) for x in configs)]
+	# print(f"configs ({len(chans_config)}): {chans_config}")
 
-	settings = (find(sorted(unique_data)))
+	# print(f"configs ({len(set(chans_config))}): {set(chans_config)}")
+	# return 0
+
+	unique_pulser_config = [list(chan_config) for chan_config in set(chans_config)]
+	app.logger.debug(f"Get the led configs: {len(unique_pulser_config)} unique configs found")
+
+	# print(f"unique_pulser_config_data ({len(unique_pulser_config)}): {unique_pulser_config}")
+	# return 0
+
+	
+	settings = regroup_tpc(sorted(unique_pulser_config))
+
+	# for i in range(len(settings)):
+	# 	print(f"settings {i} ({len(settings[i])}): {settings[i]}")
+	# return 0
 	pulser_configs = []
 
 	for setting_no in range(max(len(elem) for elem in settings)):
+		# print(f"\nSetting_no: {setting_no}")
+		
+		# print(f"{max(len(elem) for elem in settings)}")
 		tmp = []
 		for i in range(len(settings)):
 			if setting_no < len(settings[i]):
 				tmp += [settings[i][setting_no]]
 		if setting_no > 0:
-			pulser_configs += [tmp]
+			pulser_configs += [sorted(tmp)]
+			# print(f"\nsetting_no: {setting_no}, tmp ({len(tmp)}): {sorted(tmp)}")
+			# input("Press Enter to continue...")
 
-	pulser_series_resistors = []
-	pulser_parallel_resistors = []
-	file_indicies = []
-	file_index = 0
 
-	for i in pulser_configs:
-		file_index += 1
-		i = sorted(i)
+	app.logger.debug(f"The LED configs were regrouped in: {len(pulser_configs)} runs")
+
+	pulser_series_configs = []
+	pulser_parallels_configs = []
+	config_files_path = []
+
+	for i_config, config in enumerate(pulser_configs):
+		
 		series = np.full((16),0)
 		parallels = np.full((16),100)
-		for j in i:
-			led = int(str(j)[-8:-6])
-			if led <= 16:
-				parallels[led-1] = int(str(j)[-3:])
-				series[led-1] = int(str(j)[-6:-3])
-		series[series > 255] = 0
-		parallels[parallels > 255] = 0
-		pulser_series_resistors += [series]
-		pulser_parallel_resistors += [parallels]
-		file_indicies += ["{:02d}".format(file_index)]
+		
+		# The "zero values" of chan. 1,2,3,4 (from mod0) are s=0 and p=0
+		for i in range(4):
+			parallels[i] = 0
 
-	for i, ss, ps in zip(file_indicies, pulser_series_resistors, pulser_parallel_resistors):
-		json_writer(i, ss, ps)
-	return len(pulser_configs)
+		for led_id in config:
+			if check_valid_led_id(led_id):
+				led, s, p = get_led_params(led_id)
+				parallels[led-1] = p
+				series[led-1] = s
+
+		pulser_series_configs += [series]
+		pulser_parallels_configs += [parallels]
+		output_path = os.path.join(pulser_config_folder, f"{i_config:02d}.json")
+		# print(output_path)
+		config_files_path += [output_path]
+
+	for config_file_path, pulser_series_config, p_parallels_config in zip(config_files_path, pulser_series_configs, pulser_parallels_configs):
+		json_writer(config_file_path, pulser_series_config, p_parallels_config)
+
+	app.logger.debug(f"The LED configs were written, paths returned")
+	return config_files_path
+
+def make_scan_config(logger, mod0=False, step=10):
+	"""
+		Config files to perform a pulser scan from (0,0) to (250,0) with defined step. Alternate the configs ((250,0)-(0,0), (240,0)-(10,0),  ...) to (try to) minimize current draw
+
+		Args:
+			mod0 (bool)		: if True include module 0 in the scan
+			step (int)		: step size for the scan
+
+		Return path to config files
+	"""
+	
+	NCHANS = 16
+	DEFAULT = [0,0]
+	S_SCAN_RANGE = [0, 250]
+
+	pulser_config_folder = Config().parse_yaml()["pulser_config_path"]
+	inactive_chans = Config().parse_yaml()["pulser_inacitve_chans"]
+
+	os.makedirs(pulser_config_folder, mode=0o755)
+
+	s_scan = np.arange(S_SCAN_RANGE[0],S_SCAN_RANGE[1]+step,step)
+	configs = []
+	initial_chan = 0
+
+	if mod0 == False:
+		inital_chan = 4
+
+	logger.debug(f"Writting the pulser config files for a pulser scan.\nStep: {step}, Initial channel: {inital_chan}, serial range: {S_SCAN_RANGE}")	
+
+	for s in s_scan:
+
+		serial = np.full(NCHANS, DEFAULT[0])
+		parallel = np.full(NCHANS, DEFAULT[1])
+
+		for i in range(initial_chan, NCHANS, 4):
+			if i not in inactive_chans:
+				serial[i] = s
+			if i+2 not in inactive_chans: 
+				serial[i+2] = 250-s
+
+		output_path = os.path.join(pulser_config_folder, f"{s:03d}_even.json")
+
+		json_writer(output_path, serial, parallel)	
+		configs.append(output_path)
+
+		serial = np.full(NCHANS, DEFAULT[0])
+		parallel = np.full(NCHANS, DEFAULT[1])
+
+		for i in range(initial_chan+1, NCHANS, 4):
+			if i not in inactive_chans:
+				serial[i] = s
+			if i+2 not in inactive_chans: 
+				serial[i+2] = 250-s
+
+		output_path = os.path.join(pulser_config_folder, f"{s:03d}_odd.json")
+
+		json_writer(output_path, serial, parallel)	
+		configs.append(output_path)
+
+	logger.debug(f"Pulser config files for a pulser scan written: {pulser_config_folder}")
+
+	return configs
 
 if __name__ == "__main__":
+	# print(check_valid_led_id(119234123))
 	make()

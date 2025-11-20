@@ -25,6 +25,17 @@ def stop_data_run():
 def start_calib_run():
     Client().start_calib_run()
 
+#Pulser scan run controls
+@lrsctrl.command()
+def start_pulser_scan():
+    Client().start_pulser_scan()
+
+
+#Test Calibration run controls
+@lrsctrl.command()
+def start_test():
+    Client().start_test()
+
 #####
 # NOT USED ANYMORE:
 #####

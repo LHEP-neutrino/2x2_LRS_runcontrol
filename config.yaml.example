@@ -4,14 +4,27 @@ AppPort: 5051
 
 #MOAS 
 moas_path: '/data/LRS_det_config/moas_csv/'
+moas_url: 'https://docs.google.com/spreadsheets/d/13CcIy80dR0nSdZkhVfw3O8aI-YYRBjdlX6SshXjmRLM/export?format=csv&gid=1062843003'
+foas_path: '/data/LRS_det_config/foas_csv/'
+foas_ulr: 'https://docs.google.com/spreadsheets/d/1TIdh66GC85Pj2JCMTTjphAkRim6RMe5MVi0ecYqqPcM/export?format=csv&gid=0'
 db_path: '/data/LRS_det_config/lrsdetconfig.db'
 
 #CONFIG PATHS
 pulser_config_path: '/data/LRS_det_config/pulser_config/Config/'
 vga_config_path: '/data/LRS_det_config/vga_config/'
 sipm_config_path: '/data/LRS_det_config/sipmps_config/'
+sipm_config_path_raspi: '/home/pi/supplr/Configuration_CSVs'
+afi_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics'
+cur_daq_env_path: '/home/acd/acdaq/LRS_DAQ/DAQ_bridge/current_daq_env'
+adc64_sum_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics/Adc64/data_sum/default.json'
+sum_adc64_serial: '0xDF:0x00000CD9415C'
+
+#DATA PATHS
+data_path: '/data/LRS/data/'
 
 #CALIB RUNS
 calib_data: '/data/LRS/calib_runs/'
+pulser_inacitve_chans: [] #Starting from 0, e.g [0, 3, 5, 6] 
 pulser_period: 5 #ms
 pulser_duration: 100 #s
+default_voltage: 1 #V

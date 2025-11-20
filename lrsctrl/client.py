@@ -1,5 +1,5 @@
 import requests
-from lrsctrl.config import Config
+from lrscfg.config import Config
 import json
 
 
@@ -35,6 +35,24 @@ class Client():
     #Calibration run controls
     def start_calib_run(self):
         addr = f'{self.url}/api/start_calib_run/'
+        print(addr)
+        try:
+            requests.get(addr)
+        except:
+            print(f'Server disconected or script failed!')
+
+    #Pulser scan run controls
+    def start_pulser_scan(self):
+        addr = f'{self.url}/api/start_pulser_scan/'
+        print(addr)
+        try:
+            requests.get(addr)
+        except:
+            print(f'Server disconected or script failed!')
+
+    #Calibration run controls
+    def start_test(self):
+        addr = f'{self.url}/api/start_test/'
         print(addr)
         try:
             requests.get(addr)
