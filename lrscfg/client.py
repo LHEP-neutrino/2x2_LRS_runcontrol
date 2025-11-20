@@ -11,6 +11,7 @@ import lrscfg.set_SIPMs as set_SIPMs
 from lrscfg.db_handler import DB_Handler
 from lrscfg.config import Config
 import lrscfg.threshold_handler as threshold_handler
+import lrscfg.enabled_channel_handler as enabled_channel_handler
 
 
 class Client():
@@ -177,6 +178,8 @@ class Client():
         print("---Load SiPM bias configs to devices---")
         # print("Virtually setting SiPM configs")
         set_SIPMs.set_SIPM()
+        print("---Set active channels in ADC64---")
+        enabled_channel_handler.set_enabled_channels(version)
         
         print("---Set MOAS as active---")
         self.set_active_moas(version)

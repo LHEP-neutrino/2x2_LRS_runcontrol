@@ -17,6 +17,7 @@ sipm_config_path_raspi: '/home/pi/supplr/Configuration_CSVs'
 afi_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics'
 cur_daq_env_path: '/home/acd/acdaq/LRS_DAQ/DAQ_bridge/current_daq_env'
 adc64_sum_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics/Adc64/data_sum/default.json'
+adc64_reg_config_path: '/home/acd/acdaq/LRS_DAQ/afi-config/.config/AFI Electronics/Adc64/data_reg/default.json'
 sum_adc64_serial: '0xDF:0x00000CD9415C'
 
 #DATA PATHS
