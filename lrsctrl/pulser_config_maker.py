@@ -8,6 +8,7 @@ import shutil
 from lrscfg.client import Client
 from lrscfg.config import Config
 
+
 def regroup_tpc(Input):
     out = {}
     for elem in Input:
@@ -183,6 +184,69 @@ def make(app):
 
 	app.logger.debug(f"The LED configs were written, paths returned")
 	return config_files_path
+
+def make_scan_config(logger, mod0=False, step=10):
+	"""
+		Config files to perform a pulser scan from (0,0) to (250,0) with defined step. Alternate the configs ((250,0)-(0,0), (240,0)-(10,0),  ...) to (try to) minimize current draw
+
+		Args:
+			mod0 (bool)		: if True include module 0 in the scan
+			step (int)		: step size for the scan
+
+		Return path to config files
+	"""
+	
+	NCHANS = 16
+	DEFAULT = [0,0]
+	S_SCAN_RANGE = [0, 250]
+
+	pulser_config_folder = Config().parse_yaml()["pulser_config_path"]
+	inactive_chans = Config().parse_yaml()["pulser_inacitve_chans"]
+
+	os.makedirs(pulser_config_folder, mode=0o755)
+
+	s_scan = np.arange(S_SCAN_RANGE[0],S_SCAN_RANGE[1]+step,step)
+	configs = []
+	initial_chan = 0
+
+	if mod0 == False:
+		inital_chan = 4
+
+	logger.debug(f"Writting the pulser config files for a pulser scan.\nStep: {step}, Initial channel: {inital_chan}, serial range: {S_SCAN_RANGE}")	
+
+	for s in s_scan:
+
+		serial = np.full(NCHANS, DEFAULT[0])
+		parallel = np.full(NCHANS, DEFAULT[1])
+
+		for i in range(initial_chan, NCHANS, 4):
+			if i not in inactive_chans:
+				serial[i] = s
+			if i+2 not in inactive_chans: 
+				serial[i+2] = 250-s
+
+		output_path = os.path.join(pulser_config_folder, f"{s:03d}_even.json")
+
+		json_writer(output_path, serial, parallel)	
+		configs.append(output_path)
+
+		serial = np.full(NCHANS, DEFAULT[0])
+		parallel = np.full(NCHANS, DEFAULT[1])
+
+		for i in range(initial_chan+1, NCHANS, 4):
+			if i not in inactive_chans:
+				serial[i] = s
+			if i+2 not in inactive_chans: 
+				serial[i+2] = 250-s
+
+		output_path = os.path.join(pulser_config_folder, f"{s:03d}_odd.json")
+
+		json_writer(output_path, serial, parallel)	
+		configs.append(output_path)
+
+	logger.debug(f"Pulser config files for a pulser scan written: {pulser_config_folder}")
+
+	return configs
 
 if __name__ == "__main__":
 	# print(check_valid_led_id(119234123))
