@@ -50,6 +50,18 @@ class Client():
         except:
             print(f'Server disconected or script failed!')
 
+    #Channel mapping run controls
+    def start_channel_map(self, data_folder=None):
+        addr = f'{self.url}/api/start_channel_map/'
+        print(addr)
+        config = {
+            "data_folder": data_folder
+        }
+        try:
+            response = requests.post(addr, json=config)
+        except:
+            print(f'Server disconected or script failed!')
+
     #Calibration run controls
     def start_test(self):
         addr = f'{self.url}/api/start_test/'

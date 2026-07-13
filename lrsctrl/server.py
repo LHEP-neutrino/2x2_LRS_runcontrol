@@ -2,6 +2,7 @@ import logging
 from flask import Flask, request, jsonify
 from waitress import serve
 import threading, time
+import os
 
 
 from watchdog.observers import Observer
@@ -11,7 +12,7 @@ from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
 from lrsctrl.metadata import dump_metadata, get_afi_config
 from lrscfg.client import Client
 from lrscfg.config import Config
-from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM
+from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM, set_SiPM_individually
 import lrsctrl.utils as utils
 import ppulse.client as pp
 import lrsctrl.pulser_config_maker as pp_config
@@ -228,6 +229,83 @@ def start_pulser_scan():
         app.logger.debug("Done process last file")
         
     return jsonify(None)
+
+# Channel mapping 
+@app.route("/api/start_channel_map/", methods=['POST'])
+def start_channel_map():
+    """
+    Perform a channel mapping run sequence. Take some DC data, 6 channels at a time. Scan through all channels.
+    Return a json  
+
+    Return:
+        channel_map.json
+    """
+    # Retrieve the JSON payload
+    config_map = request.get_json()
+    
+    # Safely extract the variable
+    if config_map is None:
+        return jsonify({"error": "No JSON config received"}), 400
+        
+    data_folder = config_map.get('data_folder')
+    
+    if data_folder is None:
+        return jsonify({"error": "Missing 'data_folder' in request"}), 400
+    else:
+        if os.path.exists(data_folder):
+            app.logger.info(f"Starting mapping runs. The data output is set to: {data_folder}")
+        else:
+            return jsonify({"error": f"Data folder path does not exist: {data_folder}"}), 400
+    
+    # # Retrieve the system config
+    # config_dict = Config().parse_yaml()
+
+    with CUR_RUN_LOCK:
+        global CUR_RUN
+        CUR_RUN = {
+            "run": 0,
+            "data_stream": "channel_map",
+            "run_starting_instance": "lrsctrl"
+        }
+
+    # 1. First get first sipmpsctrl channel per cable, per TPC
+    channel_config = utils.make_mapping_channel_config(app)
+
+    # 2. Check that all expected cables are present for each board
+    if not utils.check_channel_config(app, channel_config):
+        return jsonify({"error": "Channel configuration is invalid"}), 400
+
+    # 3. Run the channel mapping sequence for each cable, one at a time
+    default_voltage =  Config().parse_yaml().get("default_voltage", 1.0)
+
+    for cable_id in sorted(channel_config.keys()):
+        app.logger.info(f"Processing Cable ID: {cable_id}")
+        
+        # Set the bias voltage for the channels associated with this cable ID
+        for board_id, board_data in channel_config[cable_id].items():
+            set_SiPM_individually(board=board_id, channels=board_data['sipm_bias_chan'], voltages=board_data['sipm_bias'], manage_monitoring=False, logger=app.logger)
+
+        app.logger.info(f"SiPM bias set for all boards for cable ID: {cable_id}")
+
+        # Take data
+        app.logger.info("Taking data for 10 seconds...")
+
+        # Set the SiPM bias back to default voltage
+        for board_id, board_data in channel_config[cable_id].items():
+            voltage = [default_voltage] * len(board_data['sipm_bias_chan'])  # Reset to default voltage
+            set_SiPM_individually(board=board_id, channels=board_data['sipm_bias_chan'], voltages=voltage, manage_monitoring=False, logger=app.logger)
+
+        app.logger.info(f"SiPM bias set back to {default_voltage} V for all boards for cable ID: {cable_id}")
+
+        # Find the data file and store it in the json
+        data_file = utils.get_most_recent_file(data_folder)
+        channel_config[cable_id]['data_file'] = data_file  # Store the data file path in the cable_data dictionary
+
+    # 3. After all channels are done, create a channel_map.json file with the mapping information
+    #   - save it to the data_folder
+    
+    
+    return jsonify({"status": "success"}), 200
 
 # Calibration run controls
 @app.route("/api/start_test/")

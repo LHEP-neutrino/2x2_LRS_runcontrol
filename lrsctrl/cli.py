@@ -25,6 +25,12 @@ def stop_data_run():
 def start_calib_run():
     Client().start_calib_run()
 
+# Channel mapping run controls
+@lrsctrl.command()
+@click.option("--data_folder","-d", required=True, type=str, help="Data folder path")
+def start_channel_map(data_folder):
+    Client().start_channel_map(data_folder=data_folder)
+
 #Pulser scan run controls
 @lrsctrl.command()
 def start_pulser_scan():

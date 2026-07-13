@@ -9,7 +9,20 @@ import time
 from lrscfg.config import Config
 
 WAIT_TIME = 3 # s
-WAIT_TRY = 10
+WAIT_TRY = 5
+
+BOARD_TO_MODULE = {
+    '22': {'module': 0,
+           'server': 'acd-sipmpsctrl01.fnal.gov'},
+    '21': {'module': 1,
+           'server': 'acd-sipmpsctrl01.fnal.gov'},
+    '11': {'module': 2,
+           'server': 'acd-sipmpsctrl23.fnal.gov'},
+    '13': {'module': 3,
+           'server': 'acd-sipmpsctrl23.fnal.gov'}
+}
+
+MODULE_TO_BOARD = {v['module']: {'board': k, 'server': v['server']} for k, v in BOARD_TO_MODULE.items()}
 
 def restart_supplr(server, logger=None):
     if logger is None:
@@ -112,7 +125,7 @@ def set_SIPM(config_folder=None, manage_monitoring=True, logger=None):
     modules = [0, 2, 1, 3] # Alternate supplr to minimize the chance of error
 
     if manage_monitoring == True:
-        stop_SiPMmoniotoring()
+        stop_SiPMmoniotoring(logger=logger)
 
 
     # for n_mod in range(N_modules):
@@ -125,38 +138,23 @@ def set_SIPM(config_folder=None, manage_monitoring=True, logger=None):
 
         config_file = os.path.join(config_folder, f"MOD{n_mod}.csv")
         config_folder_raspi = config["sipm_config_path_raspi"]
-        
-        server = ''
-        board = 0
-        if n_mod in [0,1]:
-            server = 'acd-sipmpsctrl01.fnal.gov'
-            if n_mod == 0:
-                board = 22
-            else:
-                board = 21
-        elif n_mod in [2,3]:
-            server = 'acd-sipmpsctrl23.fnal.gov'
-            if n_mod == 2:
-                board = 11
-            else:
-                board = 13
 
         # Copy the config file on the raspi
         
-        subprocess.run(['scp', config_file, f'pi@{server}:{config_folder_raspi}'])
+        subprocess.run(['scp', config_file, f'pi@{MODULE_TO_BOARD[n_mod]["server"]}:{config_folder_raspi}'])
         if logger is None:
-            print(f"Config files copied to {server}:{config_folder_raspi}")
+            print(f"Config files copied to {MODULE_TO_BOARD[n_mod]['server']}:{config_folder_raspi}")
         else:
-            logger.debug(f"Config files copied to {server}:{config_folder_raspi}")
+            logger.debug(f"Config files copied to {MODULE_TO_BOARD[n_mod]['server']}:{config_folder_raspi}")
         time.sleep(WAIT_TIME)
 
         # Check if supplr ready and capture its output (stdout+stderr) as text
-        check_supplr_status(server, logger=logger)
+        check_supplr_status(MODULE_TO_BOARD[n_mod]['server'], logger=logger)
 
         # Set the SiPM bias voltage
         config_file_raspi = os.path.join(config_folder_raspi, f"MOD{n_mod}.csv")
-        cmd_setSiPM = f"supplr set-channel-file --board {board} --file {config_file_raspi}"
-        subprocess.run(['ssh', '-x', f"pi@{server}", cmd_setSiPM], check=True)
+        cmd_setSiPM = f"supplr set-channel-file --board {MODULE_TO_BOARD[n_mod]['board']} --file {config_file_raspi}"
+        subprocess.run(['ssh', '-x', f"pi@{MODULE_TO_BOARD[n_mod]['server']}", cmd_setSiPM], check=True)
 
         if logger is None:
             print(f"SiPM bias voltage of module {n_mod} configured")
@@ -169,6 +167,43 @@ def set_SIPM(config_folder=None, manage_monitoring=True, logger=None):
     if manage_monitoring == True:
             start_SiPMmoniotoring(logger=logger)
 
+def set_SiPM_individually(board, channels, voltages, manage_monitoring=True, logger=None):
+    """
+    Set the SiPM bias voltage for individual channels.
+    Args:
+        board (int): The board number
+        channels (list): list of channels to set
+        voltages (list): list of voltages to set
+        manage_monitoring (bool): If True, stop and start monitoring during the operation
+        logger: logger object for logging messages
+    """
+    if len(channels) != len(voltages):
+        raise ValueError("Channels and voltages lists must have the same length")
+    
+    if manage_monitoring == True:
+        stop_SiPMmoniotoring(logger=logger)
+
+    # Construct the list of commands to set the SiPM bias voltage for each channel
+    commands = [f"supplr set-channel --board {board} --channel {channel} --voltage {voltage}"
+                for channel, voltage in zip(channels, voltages)]
+    script = "\n".join(commands)
+
+    print(f"cmd script:\n{script}")
+
+    # Execute the commands on the appropriate server
+    # server = BOARD_TO_MODULE[str(board)]['server']
+    # subprocess.run(['ssh', '-x', server, 'bash', '-s'],
+    #                 input=script,
+    #                 text=True,
+    #                 check=True)
+    
+    if logger is None:
+        print(f"SiPM bias voltage of channels {channels} set to {voltages} V")
+    else:
+        logger.debug(f"SiPM bias voltage of channels {channels} set to {voltages} V")
+
+    if manage_monitoring == True:
+        start_SiPMmoniotoring(logger=logger)
     
 def set_SIPM_zero():
     print("Ramp down SiPM bias")

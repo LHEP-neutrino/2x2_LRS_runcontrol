@@ -77,6 +77,99 @@ def get_most_recent_file(directory):
     else:
         return None
 
+def check_channel_config(app,channel_config):
+    """
+    Checks if every cable_id entry has the same number of board entries.
+
+    Args: 
+        channel_cconfig structure: {cable_id: {board_id: data, ...}, ...}, outut of make_mapping_channel_config()
+    """
+
+    if not channel_config:
+        app.logger.warning("Warning: No cable data found.")
+        return False
+
+    # Get the count of boards from the first cable entry
+    first_cable_id = next(iter(channel_config))
+    expected_N_boards = set(channel_config[first_cable_id].keys())
+
+    inconsistencies = []
+
+    for cable_id, cable_data in channel_config.items():
+        current_board_count = len(cable_data.keys())
+        app.logger.debug(f"Cable {cable_id} has {current_board_count} boards.")
+
+        if current_board_count != len(expected_N_boards):
+            inconsistencies.append({
+                "cable_id": cable_id,
+                "expected": len(expected_N_boards),
+                "actual": current_board_count
+            })
+
+    if inconsistencies:
+        app.logger.error("Validation Failed: Inconsistent number of boards per cable.")
+        for item in inconsistencies:
+            app.logger.error(f"  Cable {item['cable_id']}: Expected {item['expected']} boards, found {item['actual']}")
+        return False
+    
+    app.logger.info("Channel config validation passed: All cables have exactly the same number of boards.")
+    return True
+
+def make_mapping_channel_config(app):
+    """
+    Generate the configuration for the channel mapping run. This function will create a JSON file
+    that contains the necessary settings for the channel mapping process.
+    e.g.:
+    {
+    "NL1": { <- Cable name
+        "11": { <- Board number
+            "sipm_bias_chan": [
+                105,
+                106,
+                107,
+                108,
+                109,
+                110
+            ],
+            "sipm_bias": [
+                48.0,
+                48.0,
+                48.0,
+                48.0,
+                48.0,
+                48.0
+            ]
+        },
+        ...
+    """
+    # Load the MOAS CSV file
+    active_moas = Client().get_active_moas()
+    moas_path = Config().parse_yaml()["moas_path"]
+    moas_file = os.path.join(moas_path, active_moas)
+    
+    moas = pd.read_csv(moas_file, usecols=["sipm_bias_chan","vga_board_num","sipm_bias", "scable_id"])
+
+    # Remove inactive channels (scable_id = 999)
+    moas = moas[moas['scable_id'] != "999"]
+
+    # Split the channels into 4 subsets based on the sipmpsctrl board ("vga_board_num")
+    # This creates a dictionary where keys are the board numbers and values are the DataFrames
+    channel_cables = {cable_id: group for cable_id, group in moas.groupby('scable_id')}
+
+    # Further split each board subset by cable name ("scable_id") and store the channel numbers and bias voltages
+    channel_boards = {}
+
+    for cable_id, cable_df in channel_cables.items():
+        channel_boards[cable_id] = {
+            board_id: {
+                "sipm_bias_chan": board_df['sipm_bias_chan'].tolist(),
+                "sipm_bias": board_df['sipm_bias'].tolist()
+            }
+            for board_id, board_df in cable_df.groupby('vga_board_num')
+        }           
+    
+    return channel_boards
+    
 # def convert_to_adcs(out_file):
 #     # Declaration of variables
 #     relevant_adcs = []
