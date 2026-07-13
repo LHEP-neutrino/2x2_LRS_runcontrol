@@ -5,3 +5,5 @@ config.yaml
 *.data
 *.venv
 test/*
+local_scripts/*
+*/__init__.py
