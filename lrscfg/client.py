@@ -165,8 +165,8 @@ class Client():
 
         self.db.update_active_foas_configuration(version)
         
-    def activate_moas(self,version):
-        if not version:
+    def activate_moas(self,version=None):
+        if version is None:
             version = self.get_latest_moas()
         print("---Make VGA config---")
         VGA_config_maker.make(version)
