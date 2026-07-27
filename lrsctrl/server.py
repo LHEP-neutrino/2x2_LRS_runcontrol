@@ -284,7 +284,7 @@ def start_channel_map():
 
     # 4. Set the SiPM bias to default voltage before starting the mapping runs
     app.logger.debug(f"Setting SiPM bias to default voltage")
-    set_SIPM.set_SIPM_default()
+    set_SIPM_default()
 
     # 5. Iterate over each cable and perform the mapping run
     for cable_id in sorted(channel_config.keys()):
@@ -319,7 +319,7 @@ def start_channel_map():
     # Setting the SiPMs bias back to the active moas
     Client().activate_moas()
     app.logger.debug("SiPM bias set back to active MOAS")
-    
+
     # 6. After all channels are done, create a channel_map.json file with the mapping information and 
     #save it to the data_folder
 
