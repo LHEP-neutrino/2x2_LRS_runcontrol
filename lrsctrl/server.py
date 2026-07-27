@@ -3,6 +3,8 @@ from flask import Flask, request, jsonify
 from waitress import serve
 import threading, time
 import os
+import json
+from datetime import datetime
 
 
 from watchdog.observers import Observer
@@ -240,6 +242,7 @@ def start_channel_map():
     Return:
         channel_map.json
     """
+    app.logger.info("CHANNEL MAP: Start channel mapping run")
     # Retrieve the JSON payload
     config_map = request.get_json()
     
@@ -267,6 +270,9 @@ def start_channel_map():
             "data_stream": "channel_map",
             "run_starting_instance": "lrsctrl"
         }
+    
+    # Generate the start timestamp string
+    start_timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
     # 1. First get first sipmpsctrl channel per cable, per TPC
     channel_config = utils.make_mapping_channel_config(app)
@@ -292,8 +298,8 @@ def start_channel_map():
 
         # Set the SiPM bias back to default voltage
         for board_id, board_data in channel_config[cable_id].items():
-            voltage = [default_voltage] * len(board_data['sipm_bias_chan'])  # Reset to default voltage
-            set_SiPM_individually(board=board_id, channels=board_data['sipm_bias_chan'], voltages=voltage, manage_monitoring=False, logger=app.logger)
+            default_voltages = [default_voltage] * len(board_data['sipm_bias_chan'])  # Reset to default voltage
+            set_SiPM_individually(board=board_id, channels=board_data['sipm_bias_chan'], voltages=default_voltages, manage_monitoring=False, logger=app.logger)
 
         app.logger.info(f"SiPM bias set back to {default_voltage} V for all boards for cable ID: {cable_id}")
 
@@ -301,8 +307,13 @@ def start_channel_map():
         data_file = utils.get_most_recent_file(data_folder)
         channel_config[cable_id]['data_file'] = data_file  # Store the data file path in the cable_data dictionary
 
-    # 3. After all channels are done, create a channel_map.json file with the mapping information
-    #   - save it to the data_folder
+    # 4. After all channels are done, create a channel_map.json file with the mapping information and 
+    #save it to the data_folder
+
+    # Construct the filename (e.g. 20260727_1107_channel_map.json)
+    filename_json = f"{start_timestamp}_channel_map.json"
+    with open(os.path.join(data_folder, filename_json), 'w') as f:
+        json.dump(channel_config, f, indent=4)
     
     
     return jsonify({"status": "success"}), 200
