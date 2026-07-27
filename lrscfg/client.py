@@ -206,5 +206,5 @@ class Client():
         
     def ramp_down_sipm(self):
         print("---Ramp down SiPMs---")
-        set_SIPMs.set_SIPM_zero()
+        set_SIPMs.set_SIPM_default()
         print("---Ramp finished. Verify in Grafana!!---")

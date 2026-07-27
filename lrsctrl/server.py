@@ -14,7 +14,7 @@ from lrsctrl.sender import Sender, SENDER_PORT_ADC64, SENDER_PORT_RC
 from lrsctrl.metadata import dump_metadata, get_afi_config
 from lrscfg.client import Client
 from lrscfg.config import Config
-from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM, set_SiPM_individually
+from lrscfg.set_SIPMs import start_SiPMmoniotoring, stop_SiPMmoniotoring, set_SIPM, set_SiPM_individually, set_SIPM_default
 import lrsctrl.utils as utils
 import ppulse.client as pp
 import lrsctrl.pulser_config_maker as pp_config
@@ -282,6 +282,11 @@ def start_channel_map():
     # 3. Run the channel mapping sequence for each cable, one at a time
     default_voltage =  Config().parse_yaml().get("default_voltage", 1.0)
 
+    # 4. Set the SiPM bias to default voltage before starting the mapping runs
+    app.logger.debug(f"Setting SiPM bias to default voltage")
+    set_SIPM.set_SIPM_default()
+
+    # 5. Iterate over each cable and perform the mapping run
     for cable_id in sorted(channel_config.keys()):
         app.logger.debug(f"Processing Cable ID: {cable_id}")
         
@@ -311,7 +316,11 @@ def start_channel_map():
 
         break
 
-    # 4. After all channels are done, create a channel_map.json file with the mapping information and 
+    # Setting the SiPMs bias back to the active moas
+    Client().activate_moas()
+    app.logger.debug("SiPM bias set back to active MOAS")
+    
+    # 6. After all channels are done, create a channel_map.json file with the mapping information and 
     #save it to the data_folder
 
     # Construct the filename (e.g. 20260727_1107_channel_map.json)

@@ -205,7 +205,7 @@ def set_SiPM_individually(board, channels, voltages, manage_monitoring=True, log
     if manage_monitoring == True:
         start_SiPMmoniotoring(logger=logger)
     
-def set_SIPM_zero():
+def set_SIPM_default():
     print("Ramp down SiPM bias")
-    subprocess.run(['ssh', '-x', 'pi@acd-sipmpsctrl01', '.', '~/set0.sh'])
-    subprocess.run(['ssh', '-x', 'pi@acd-sipmpsctrl23', '.', '~/set0.sh'])
+    subprocess.run(['ssh', '-x', 'pi@acd-sipmpsctrl01', '.', '~/set_default.sh'])
+    subprocess.run(['ssh', '-x', 'pi@acd-sipmpsctrl23', '.', '~/set_default.sh'])
