@@ -237,11 +237,9 @@ def start_pulser_scan():
 def start_channel_map():
     """
     Perform a channel mapping run sequence. Take some DC data, 6 channels at a time. Scan through all channels.
-    Return a json  
-
-    Return:
-        channel_map.json
+    Save a channel_map.json file in the data folder with the channels to data file information.
     """
+
     app.logger.info("CHANNEL MAP: Start channel mapping run")
     # Retrieve the JSON payload
     config_map = request.get_json()
@@ -256,7 +254,7 @@ def start_channel_map():
         return jsonify({"error": "Missing 'data_folder' in request"}), 400
     else:
         if os.path.exists(data_folder):
-            app.logger.info(f"Starting mapping runs. The data output is set to: {data_folder}")
+            app.logger.debug(f"Starting mapping runs. The data output is set to: {data_folder}")
         else:
             return jsonify({"error": f"Data folder path does not exist: {data_folder}"}), 400
     
@@ -274,7 +272,7 @@ def start_channel_map():
     # Generate the start timestamp string
     start_timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
-    # 1. First get first sipmpsctrl channel per cable, per TPC
+    # 1. First get sipmpsctrl channel per cable, per TPC
     channel_config = utils.make_mapping_channel_config(app)
 
     # 2. Check that all expected cables are present for each board
@@ -285,16 +283,20 @@ def start_channel_map():
     default_voltage =  Config().parse_yaml().get("default_voltage", 1.0)
 
     for cable_id in sorted(channel_config.keys()):
-        app.logger.info(f"Processing Cable ID: {cable_id}")
+        app.logger.debug(f"Processing Cable ID: {cable_id}")
         
         # Set the bias voltage for the channels associated with this cable ID
         for board_id, board_data in channel_config[cable_id].items():
             set_SiPM_individually(board=board_id, channels=board_data['sipm_bias_chan'], voltages=board_data['sipm_bias'], manage_monitoring=False, logger=app.logger)
 
-        app.logger.info(f"SiPM bias set for all boards for cable ID: {cable_id}")
+        app.logger.debug(f"SiPM bias set for all boards for cable ID: {cable_id}")
 
         # Take data
-        app.logger.info("Taking data for 10 seconds...")
+        start_rc()
+        app.logger.debug(f'CALIB: ~~~ Map Run started, cable {cable_id} ~~~')
+        time.sleep(15)
+        stop_rc()
+        app.logger.debug(f'CALIB: ~~~ Run stopped ~~~')
 
         # Set the SiPM bias back to default voltage
         for board_id, board_data in channel_config[cable_id].items():
@@ -307,6 +309,8 @@ def start_channel_map():
         data_file = utils.get_most_recent_file(data_folder)
         channel_config[cable_id]['data_file'] = data_file  # Store the data file path in the cable_data dictionary
 
+        break
+
     # 4. After all channels are done, create a channel_map.json file with the mapping information and 
     #save it to the data_folder
 
@@ -315,7 +319,8 @@ def start_channel_map():
     with open(os.path.join(data_folder, filename_json), 'w') as f:
         json.dump(channel_config, f, indent=4)
     
-    
+    app.logger.info(f"Channel map json saved to {filename_json}")
+
     return jsonify({"status": "success"}), 200
 
 # Calibration run controls

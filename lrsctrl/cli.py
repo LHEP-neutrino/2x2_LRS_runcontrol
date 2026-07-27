@@ -29,6 +29,7 @@ def start_calib_run():
 @lrsctrl.command()
 @click.option("--data_folder","-d", required=True, type=str, help="Data folder path")
 def start_channel_map(data_folder):
+    click.confirm(f"Is the MOAS activated, the DAQ in timing mode and the output folder set to {data_folder}?", abort=True)
     Client().start_channel_map(data_folder=data_folder)
 
 #Pulser scan run controls
