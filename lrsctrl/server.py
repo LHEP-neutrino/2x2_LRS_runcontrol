@@ -314,11 +314,11 @@ def start_channel_map():
         data_file = utils.get_most_recent_file(data_folder)
         channel_config[cable_id]['data_file'] = data_file  # Store the data file path in the cable_data dictionary
 
-        break
 
     # Setting the SiPMs bias back to the active moas
+    app.logger.debug("Setting SiPM bias back to active MOAS")
     Client().activate_moas()
-    app.logger.debug("SiPM bias set back to active MOAS")
+    
 
     # 6. After all channels are done, create a channel_map.json file with the mapping information and 
     #save it to the data_folder
