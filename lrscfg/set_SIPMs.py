@@ -192,7 +192,7 @@ def set_SiPM_individually(board, channels, voltages, manage_monitoring=True, log
 
     # Execute the commands on the appropriate server
     server = BOARD_TO_MODULE[str(board)]['server']
-    subprocess.run(['ssh', '-x', server, 'bash', '-s'],
+    subprocess.run(['ssh', '-x', f'pi@{server}', 'bash', '-s'],
                     input=script,
                     text=True,
                     check=True)
