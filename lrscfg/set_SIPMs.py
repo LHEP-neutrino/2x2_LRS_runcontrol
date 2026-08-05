@@ -188,14 +188,14 @@ def set_SiPM_individually(board, channels, voltages, manage_monitoring=True, log
                 for channel, voltage in zip(channels, voltages)]
     script = "\n".join(commands)
 
-    print(f"cmd script:\n{script}")
+    # print(f"cmd script:\n{script}")
 
     # Execute the commands on the appropriate server
-    # server = BOARD_TO_MODULE[str(board)]['server']
-    # subprocess.run(['ssh', '-x', server, 'bash', '-s'],
-    #                 input=script,
-    #                 text=True,
-    #                 check=True)
+    server = BOARD_TO_MODULE[str(board)]['server']
+    subprocess.run(['ssh', '-x', server, 'bash', '-s'],
+                    input=script,
+                    text=True,
+                    check=True)
     
     if logger is None:
         print(f"SiPM bias voltage of channels {channels} set to {voltages} V")
