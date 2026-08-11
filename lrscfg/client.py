@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import filecmp, os, glob
 import re
+import subprocess
 
 import lrscfg.VGA_config_maker as VGA_config_maker
 import lrscfg.set_VGAS as set_VGAS
@@ -88,6 +89,15 @@ class Client():
             if version.startswith('MOAS_'):
                 version = version[5:]
         self.db.update_active_configuration(version)
+
+    def moas_table(self, entries=None):
+        print("Displaying MOAS table with {} entries...".format(entries if entries is not None else "all"))
+        cmd = ["sqlite-utils", "rows", "/data/LRS_det_config_run3/lrsdetconfig.db", "moas_versions", "--table"]
+        if entries is not None:
+            cmd.extend(["--limit", str(entries)])
+        # print(cmd)
+        subprocess.run(cmd)
+        return
 
     def pull_foas(self, tag):
         my_date = datetime.now()
@@ -207,4 +217,12 @@ class Client():
     def ramp_down_sipm(self):
         print("---Ramp down SiPMs---")
         set_SIPMs.set_SIPM_default()
+        print("---Ramp finished. Verify in Grafana!!---")
+
+
+    def ramp_TTI(self, direction, modules):
+        print(f"---Ramp TTI {direction} for modules {modules}---")
+        print(modules)
+        print("TO FINISH TO IMPLEMENT")
+        # Implementation for ramping TTI
         print("---Ramp finished. Verify in Grafana!!---")
